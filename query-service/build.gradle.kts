@@ -60,10 +60,6 @@ hypertraceDocker {
   tag("${project.name}" + "_" + versionBanner())
 }
 
-// fun getCommitHash(): String {
-//  return execute('git rev-parse --verify --short HEAD').text.trim()
-// }
-
 fun versionBanner(): String {
   val os = com.bmuschko.gradle.docker.shaded.org.apache.commons.io.output.ByteArrayOutputStream()
   project.exec {
