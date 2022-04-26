@@ -61,7 +61,7 @@ hypertraceDocker {
 }
 
 fun getCommitHash(): String {
-  return "0dcce420277ecb38af1fcebfb1da6ab2ed7ad7fe"
+  return System.getenv("GITHUB_SHA_SHORT").toString()
 }
 
 tasks.jacocoIntegrationTestReport {
