@@ -51,10 +51,17 @@ tasks.integrationTest {
 
 hypertraceDocker {
   defaultImage {
+    imageName.set("hypertrace-ingester")
     javaApplication {
       port.set(8090)
     }
+    namespace.set("razorpay")
   }
+  tag("${project.name}" + "_" + getCommitHash())
+}
+
+fun getCommitHash(): String {
+  return System.getenv("COMMIT_SHA").toString()
 }
 
 tasks.jacocoIntegrationTestReport {
