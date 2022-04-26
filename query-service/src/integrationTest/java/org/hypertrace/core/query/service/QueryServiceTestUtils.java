@@ -21,7 +21,6 @@ import org.hypertrace.core.query.service.api.Value;
 import org.hypertrace.core.query.service.api.ValueType;
 
 public class QueryServiceTestUtils {
-  
 
   private static final String REQUESTS_DIR = "attribute-expression-test-queries";
 
