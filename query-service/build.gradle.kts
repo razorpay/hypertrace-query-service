@@ -51,17 +51,26 @@ tasks.integrationTest {
 
 hypertraceDocker {
   defaultImage {
-    imageName.set("hypertrace-ingester")
+    imageName.set("hypertrace-query-service")
     javaApplication {
       port.set(8090)
     }
     namespace.set("razorpay")
   }
-  tag("${project.name}" + "_" + getCommitHash())
+  tag("${project.name}" + "_" + versionBanner())
 }
 
-fun getCommitHash(): String {
-  return System.getenv("COMMIT_SHA").toString()
+//fun getCommitHash(): String {
+//  return execute('git rev-parse --verify --short HEAD').text.trim()
+//}
+
+fun versionBanner(): String {
+  val os = com.bmuschko.gradle.docker.shaded.org.apache.commons.io.output.ByteArrayOutputStream()
+  project.exec {
+    commandLine = "git rev-parse --verify --short HEAD".split(" ")
+    standardOutput = os
+  }
+  return String(os.toByteArray()).trim()
 }
 
 tasks.jacocoIntegrationTestReport {
