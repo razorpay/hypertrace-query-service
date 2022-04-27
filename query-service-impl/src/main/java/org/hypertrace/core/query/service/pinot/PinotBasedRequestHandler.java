@@ -3,7 +3,6 @@ package org.hypertrace.core.query.service.pinot;
 import static org.hypertrace.core.query.service.ConfigUtils.optionallyGet;
 import static org.hypertrace.core.query.service.QueryRequestUtil.getLogicalColumnName;
 import static org.hypertrace.core.query.service.utils.PlatformMetricRegistryUtil.registerDistributionSummary;
-import static org.hypertrace.core.query.service.utils.TimeUtil.convertSecondsToMinutes;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
@@ -451,7 +450,7 @@ public class PinotBasedRequestHandler implements RequestHandler {
 
   private void measureRequestTimeRangeDuration(Duration timeRangeDuration) {
     try {
-      long minutes = convertSecondsToMinutes(timeRangeDuration.getSeconds());
+      long minutes = timeRangeDuration.toMinutes();
       LOG.info("Pinot {} : timeRangeDuration of request in minutes: {}.", name, minutes);
       pinotQueryTimeRangeDurationMetric.record(minutes);
     } catch (Exception e) {
