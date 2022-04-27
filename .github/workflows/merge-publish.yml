@@ -33,7 +33,7 @@ jobs:
           username: ${{ secrets.PUBLIC_DOCKER_USERNAME }}
           password: ${{ secrets.PUBLIC_DOCKER_PASSWORD }}
 
-      - name: Publish docker image
+      - name: push docker image
           run: ./gradlew dockerPushImages
           env:
             DOCKER_USERNAME: ${{ secrets.DOCKERHUB_PUBLISH_USER }}
