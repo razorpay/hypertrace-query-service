@@ -7,7 +7,6 @@ import io.micrometer.core.instrument.Tag;
 import org.hypertrace.core.serviceframework.metrics.PlatformMetricsRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.Marker;
 
 import java.util.HashSet;
 import java.util.Map;
