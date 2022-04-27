@@ -113,9 +113,10 @@ public class PinotBasedRequestHandler implements RequestHandler {
     this.pinotQueryExecutionTimer =
         PlatformMetricsRegistry.registerTimer("pinot.query.latency", Map.of("handler", name), true);
     this.pinotQueryTimeRangeDurationMetric =
-            registerDistributionSummary("pinot.query.request.duration.range", Map.of("handler", name), true);
+        registerDistributionSummary(
+            "pinot.query.request.duration.range", Map.of("handler", name), true);
     this.pinotTagQueryExecutionTimer =
-            PlatformMetricsRegistry.registerTimer("pinot.tag.query.latency", ImmutableMap.of(), true);
+        PlatformMetricsRegistry.registerTimer("pinot.tag.query.latency", ImmutableMap.of(), true);
   }
 
   @Override
@@ -419,7 +420,7 @@ public class PinotBasedRequestHandler implements RequestHandler {
         Optional<Duration> timeRangeDuration = executionContext.getTimeRangeDuration();
         timeRangeDuration.ifPresent(this::measureRequestTimeRangeDuration);
         Set<String> referencedColumns = executionContext.getReferencedColumns();
-        if(referencedColumns != null && referencedColumns.contains(TAG_COLUMN)) {
+        if (referencedColumns != null && referencedColumns.contains(TAG_COLUMN)) {
           pinotTagQueryExecutionTimer.record(stopwatch.elapsed());
         }
       }
@@ -453,11 +454,10 @@ public class PinotBasedRequestHandler implements RequestHandler {
     try {
       long minutes = timeRangeDuration.toMinutes();
       pinotQueryTimeRangeDurationMetric.record(minutes);
-      LOG.info(new ObjectMapper().writerWithDefaultPrettyPrinter()
-              .writeValueAsString(Map.of(
-              "bookmark", "QUERY_TIME_SPAN",
-              "duration", minutes
-      )));
+      LOG.info(
+          new ObjectMapper()
+              .writerWithDefaultPrettyPrinter()
+              .writeValueAsString(Map.of("bookmark", "QUERY_TIME_SPAN", "duration", minutes)));
     } catch (Exception e) {
       LOG.error("Error occurred while measuring RequestTimeRangeDuration for Pinot query: ", e);
     }
