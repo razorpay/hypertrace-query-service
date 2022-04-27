@@ -88,8 +88,8 @@ public class PinotBasedRequestHandler implements RequestHandler {
       JsonFormat.printer().omittingInsignificantWhitespace();
 
   private Timer pinotQueryExecutionTimer;
-  private DistributionSummary pinotQueryTimeRangeDurationMetric;
   private Timer pinotTagQueryExecutionTimer;
+  private DistributionSummary pinotQueryTimeRangeDurationMetric;
   private int slowQueryThreshold = DEFAULT_SLOW_QUERY_THRESHOLD_MS;
 
   PinotBasedRequestHandler(String name, Config config) {
