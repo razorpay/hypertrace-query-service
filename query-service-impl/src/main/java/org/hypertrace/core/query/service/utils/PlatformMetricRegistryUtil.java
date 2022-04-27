@@ -1,9 +1,13 @@
 package org.hypertrace.core.query.service.utils;
 
+import com.google.common.base.Preconditions;
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.ImmutableTag;
 import io.micrometer.core.instrument.Tag;
 import org.hypertrace.core.serviceframework.metrics.PlatformMetricsRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Marker;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -12,24 +16,21 @@ import java.util.Set;
 //this should be added in utils repo or change should be made in platform metrics file of service framework repo
 public class PlatformMetricRegistryUtil extends PlatformMetricsRegistry {
 
-    public static Iterable<Tag> getTags(Map<String, String> tags) {
-        if (tags != null && !tags.isEmpty()) {
-            Set<Tag> newTags = new HashSet();
-            tags.forEach((k, v) -> {
-                newTags.add(new ImmutableTag(k, v));
-            });
-            return newTags;
-        } else {
-            return new HashSet();
-        }
-    }
+    private static final Logger LOG = LoggerFactory.getLogger(PlatformMetricRegistryUtil.class);
 
     public static DistributionSummary registerDistributionSummary(String name, Map<String, String> tags, boolean histogram) {
-        io.micrometer.core.instrument.DistributionSummary.Builder builder = DistributionSummary.builder(name).tags(getTags(tags)).maximumExpectedValue(3000.0);
-        if(histogram) {
-            builder.publishPercentileHistogram();
+        try {
+            Set<Tag> newTags = new HashSet<>();
+            Preconditions.checkNotNull(tags).forEach((k, v) -> newTags.add(new ImmutableTag(k, v)));
+            io.micrometer.core.instrument.DistributionSummary.Builder builder = DistributionSummary.builder(name).tags(newTags).maximumExpectedValue(3000.0);
+            if (histogram) {
+                builder.publishPercentileHistogram();
+            }
+            return builder.register(getMeterRegistry());
+        } catch (Exception e) {
+            LOG.error("Error occurred while registering {} meter ",name, e);
+            return null;
         }
-        return builder.register(getMeterRegistry());
     }
 
 }

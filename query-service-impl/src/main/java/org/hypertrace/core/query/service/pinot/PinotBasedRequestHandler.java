@@ -4,6 +4,7 @@ import static org.hypertrace.core.query.service.ConfigUtils.optionallyGet;
 import static org.hypertrace.core.query.service.QueryRequestUtil.getLogicalColumnName;
 import static org.hypertrace.core.query.service.utils.PlatformMetricRegistryUtil.registerDistributionSummary;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableMap;
@@ -451,8 +452,12 @@ public class PinotBasedRequestHandler implements RequestHandler {
   private void measureRequestTimeRangeDuration(Duration timeRangeDuration) {
     try {
       long minutes = timeRangeDuration.toMinutes();
-      LOG.info("Pinot {} : timeRangeDuration of request in minutes: {}.", name, minutes);
       pinotQueryTimeRangeDurationMetric.record(minutes);
+      LOG.info(new ObjectMapper().writerWithDefaultPrettyPrinter()
+              .writeValueAsString(Map.of(
+              "bookmark", "QUERY_TIME_SPAN",
+              "duration", minutes
+      )));
     } catch (Exception e) {
       LOG.error("Error occurred while measuring RequestTimeRangeDuration for Pinot query: ", e);
     }
