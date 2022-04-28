@@ -447,7 +447,8 @@ public class PinotBasedRequestHandler implements RequestHandler {
     }
   }
 
-  private void measurePinotTagQueryExecutionTime(ExecutionContext executionContext, Stopwatch stopwatch) {
+  private void measurePinotTagQueryExecutionTime(
+      ExecutionContext executionContext, Stopwatch stopwatch) {
     try {
       Set<String> referencedColumns = executionContext.getReferencedColumns();
       Preconditions.checkNotNull(referencedColumns);
@@ -465,7 +466,7 @@ public class PinotBasedRequestHandler implements RequestHandler {
       Preconditions.checkNotNull(executionContext.getTimeRangeDuration());
       if (executionContext.getTimeRangeDuration().isPresent()) {
         Optional<Duration> timeRangeDuration = executionContext.getTimeRangeDuration();
-        if(timeRangeDuration.isPresent()) {
+        if (timeRangeDuration.isPresent()) {
           measureRequestTimeRangeDuration(timeRangeDuration.get());
         }
       }
@@ -474,13 +475,14 @@ public class PinotBasedRequestHandler implements RequestHandler {
     }
   }
 
-  private void measureRequestTimeRangeDuration(Duration timeRangeDuration) throws JsonProcessingException {
-      long minutes = timeRangeDuration.toMinutes();
-      pinotQueryTimeRangeDurationMetric.record(minutes);
-      LOG.info(
-          new ObjectMapper()
-              .writerWithDefaultPrettyPrinter()
-              .writeValueAsString(Map.of("bookmark", "QUERY_TIME_SPAN", "duration", minutes)));
+  private void measureRequestTimeRangeDuration(Duration timeRangeDuration)
+      throws JsonProcessingException {
+    long minutes = timeRangeDuration.toMinutes();
+    pinotQueryTimeRangeDurationMetric.record(minutes);
+    LOG.info(
+        new ObjectMapper()
+            .writerWithDefaultPrettyPrinter()
+            .writeValueAsString(Map.of("bookmark", "QUERY_TIME_SPAN", "duration", minutes)));
   }
 
   @Nonnull
