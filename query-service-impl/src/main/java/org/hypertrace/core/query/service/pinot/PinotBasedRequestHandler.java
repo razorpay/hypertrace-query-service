@@ -4,6 +4,7 @@ import static org.hypertrace.core.query.service.ConfigUtils.optionallyGet;
 import static org.hypertrace.core.query.service.QueryRequestUtil.getLogicalColumnName;
 import static org.hypertrace.core.query.service.utils.PlatformMetricRegistryUtil.registerDistributionSummary;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
@@ -417,12 +418,8 @@ public class PinotBasedRequestHandler implements RequestHandler {
         // Rethrow for the caller to return an error.
         throw new RuntimeException(ex);
       } finally {
-        Optional<Duration> timeRangeDuration = executionContext.getTimeRangeDuration();
-        timeRangeDuration.ifPresent(this::measureRequestTimeRangeDuration);
-        Set<String> referencedColumns = executionContext.getReferencedColumns();
-        if (referencedColumns != null && referencedColumns.contains(TAG_COLUMN)) {
-          pinotTagQueryExecutionTimer.record(stopwatch.elapsed());
-        }
+        measureRequestSpan(executionContext);
+        measurePinotTagQueryExecutionTime(executionContext, stopwatch);
       }
 
       if (LOG.isDebugEnabled()) {
@@ -450,17 +447,40 @@ public class PinotBasedRequestHandler implements RequestHandler {
     }
   }
 
-  private void measureRequestTimeRangeDuration(Duration timeRangeDuration) {
+  private void measurePinotTagQueryExecutionTime(ExecutionContext executionContext, Stopwatch stopwatch) {
     try {
+      Set<String> referencedColumns = executionContext.getReferencedColumns();
+      Preconditions.checkNotNull(referencedColumns);
+      if (referencedColumns.contains(TAG_COLUMN)) {
+        pinotTagQueryExecutionTimer.record(stopwatch.elapsed());
+      }
+    } catch (Exception e) {
+      LOG.error("Error occurred while measuring PinotTagQueryExecutionTime: ", e);
+    }
+  }
+
+  private void measureRequestSpan(ExecutionContext executionContext) {
+    try {
+      Preconditions.checkNotNull(executionContext);
+      Preconditions.checkNotNull(executionContext.getTimeRangeDuration());
+      if (executionContext.getTimeRangeDuration().isPresent()) {
+        Optional<Duration> timeRangeDuration = executionContext.getTimeRangeDuration();
+        if(timeRangeDuration.isPresent()) {
+          measureRequestTimeRangeDuration(timeRangeDuration.get());
+        }
+      }
+    } catch (Exception e) {
+      LOG.error("Error occurred while measuring RequestSpan for Pinot query: ", e);
+    }
+  }
+
+  private void measureRequestTimeRangeDuration(Duration timeRangeDuration) throws JsonProcessingException {
       long minutes = timeRangeDuration.toMinutes();
       pinotQueryTimeRangeDurationMetric.record(minutes);
       LOG.info(
           new ObjectMapper()
               .writerWithDefaultPrettyPrinter()
               .writeValueAsString(Map.of("bookmark", "QUERY_TIME_SPAN", "duration", minutes)));
-    } catch (Exception e) {
-      LOG.error("Error occurred while measuring RequestTimeRangeDuration for Pinot query: ", e);
-    }
   }
 
   @Nonnull
