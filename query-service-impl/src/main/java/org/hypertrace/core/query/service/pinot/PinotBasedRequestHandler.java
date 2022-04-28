@@ -115,7 +115,7 @@ public class PinotBasedRequestHandler implements RequestHandler {
         PlatformMetricsRegistry.registerTimer("pinot.query.latency", Map.of("handler", name), true);
     this.pinotQueryTimeRangeDurationMetric =
         registerDistributionSummary(
-            "pinot.query.request.duration.range", Map.of("handler", name), true);
+            "pinot.query.request.duration.range", ImmutableMap.of(), true);
     this.pinotTagQueryExecutionTimer =
         PlatformMetricsRegistry.registerTimer("pinot.tag.query.latency", ImmutableMap.of(), true);
   }
