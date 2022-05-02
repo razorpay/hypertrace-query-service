@@ -23,7 +23,9 @@ public class PlatformMetricRegistryUtil extends PlatformMetricsRegistry {
       Set<Tag> newTags = new HashSet<>();
       Preconditions.checkNotNull(tags).forEach((k, v) -> newTags.add(new ImmutableTag(k, v)));
       io.micrometer.core.instrument.DistributionSummary.Builder builder =
-          DistributionSummary.builder(name).tags(newTags).maximumExpectedValue(604800.0); //minutes for 7 days
+          DistributionSummary.builder(name)
+              .tags(newTags)
+              .maximumExpectedValue(604800.0); // minutes for 7 days
       if (histogram) {
         builder.publishPercentileHistogram();
       }

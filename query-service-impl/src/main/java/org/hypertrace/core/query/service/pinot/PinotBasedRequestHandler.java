@@ -479,8 +479,7 @@ public class PinotBasedRequestHandler implements RequestHandler {
     }
   }
 
-  private void measureRequestAge(Duration timeRangeDuration)
-      throws JsonProcessingException {
+  private void measureRequestAge(Duration timeRangeDuration) throws JsonProcessingException {
     long minutes = timeRangeDuration.toMinutes();
     pinotQueryAgeDurationMetric.record(minutes);
     LOG.debug(
