@@ -19,6 +19,7 @@ import io.micrometer.core.instrument.Timer;
 import io.reactivex.rxjava3.core.Observable;
 import java.io.IOException;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -35,6 +36,7 @@ import org.apache.pinot.client.ResultSet;
 import org.apache.pinot.client.ResultSetGroup;
 import org.hypertrace.core.query.service.ExecutionContext;
 import org.hypertrace.core.query.service.QueryCost;
+import org.hypertrace.core.query.service.QueryTimeRange;
 import org.hypertrace.core.query.service.RequestHandler;
 import org.hypertrace.core.query.service.api.Expression;
 import org.hypertrace.core.query.service.api.Expression.ValueCase;
@@ -90,7 +92,7 @@ public class PinotBasedRequestHandler implements RequestHandler {
 
   private Timer pinotQueryExecutionTimer;
   private Timer pinotTagQueryExecutionTimer;
-  private DistributionSummary pinotQueryTimeRangeDurationMetric;
+  private DistributionSummary pinotQueryAgeDurationMetric;
   private int slowQueryThreshold = DEFAULT_SLOW_QUERY_THRESHOLD_MS;
 
   PinotBasedRequestHandler(String name, Config config) {
@@ -113,8 +115,8 @@ public class PinotBasedRequestHandler implements RequestHandler {
     // Registry the latency metric with handler as a tag.
     this.pinotQueryExecutionTimer =
         PlatformMetricsRegistry.registerTimer("pinot.query.latency", Map.of("handler", name), true);
-    this.pinotQueryTimeRangeDurationMetric =
-        registerDistributionSummary("pinot.query.request.duration.range", ImmutableMap.of(), true);
+    this.pinotQueryAgeDurationMetric =
+        registerDistributionSummary("pinot.query.age", ImmutableMap.of(), true);
     this.pinotTagQueryExecutionTimer =
         PlatformMetricsRegistry.registerTimer("pinot.tag.query.latency", ImmutableMap.of(), true);
   }
@@ -417,7 +419,7 @@ public class PinotBasedRequestHandler implements RequestHandler {
         // Rethrow for the caller to return an error.
         throw new RuntimeException(ex);
       } finally {
-        measureRequestSpan(executionContext);
+        measureRequestAge(executionContext);
         measurePinotTagQueryExecutionTime(executionContext, stopwatch);
       }
 
@@ -459,14 +461,17 @@ public class PinotBasedRequestHandler implements RequestHandler {
     }
   }
 
-  private void measureRequestSpan(ExecutionContext executionContext) {
+  private void measureRequestAge(ExecutionContext executionContext) {
     try {
       Preconditions.checkNotNull(executionContext);
-      Preconditions.checkNotNull(executionContext.getTimeRangeDuration());
-      if (executionContext.getTimeRangeDuration().isPresent()) {
-        Optional<Duration> timeRangeDuration = executionContext.getTimeRangeDuration();
-        if (timeRangeDuration.isPresent()) {
-          measureRequestTimeRangeDuration(timeRangeDuration.get());
+      Preconditions.checkNotNull(executionContext.getQueryTimeRange());
+      if (executionContext.getQueryTimeRange().isPresent()) {
+        Optional<QueryTimeRange> queryAge = executionContext.getQueryTimeRange();
+        if (queryAge.isPresent()) {
+          Instant startTimeInstant = (queryAge.get().getStartTime());
+          Instant currentInstant = Instant.now();
+          Duration duration = Duration.between(startTimeInstant, currentInstant);
+          measureRequestAge(duration);
         }
       }
     } catch (Exception e) {
@@ -474,14 +479,14 @@ public class PinotBasedRequestHandler implements RequestHandler {
     }
   }
 
-  private void measureRequestTimeRangeDuration(Duration timeRangeDuration)
+  private void measureRequestAge(Duration timeRangeDuration)
       throws JsonProcessingException {
     long minutes = timeRangeDuration.toMinutes();
-    pinotQueryTimeRangeDurationMetric.record(minutes);
+    pinotQueryAgeDurationMetric.record(minutes);
     LOG.debug(
         new ObjectMapper()
             .writerWithDefaultPrettyPrinter()
-            .writeValueAsString(Map.of("bookmark", "QUERY_TIME_SPAN", "duration", minutes)));
+            .writeValueAsString(Map.of("bookmark", "QUERY_AGE", "duration", minutes)));
   }
 
   @Nonnull
