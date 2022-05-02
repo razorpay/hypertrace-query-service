@@ -478,7 +478,7 @@ public class PinotBasedRequestHandler implements RequestHandler {
       throws JsonProcessingException {
     long minutes = timeRangeDuration.toMinutes();
     pinotQueryTimeRangeDurationMetric.record(minutes);
-    LOG.info(
+    LOG.debug(
         new ObjectMapper()
             .writerWithDefaultPrettyPrinter()
             .writeValueAsString(Map.of("bookmark", "QUERY_TIME_SPAN", "duration", minutes)));
