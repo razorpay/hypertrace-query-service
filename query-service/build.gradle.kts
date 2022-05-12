@@ -17,7 +17,7 @@ dependencies {
 
   runtimeOnly("org.apache.logging.log4j:log4j-slf4j-impl:2.17.1")
   runtimeOnly("io.grpc:grpc-netty")
-  integrationTestImplementation("com.google.protobuf:protobuf-java-util:3.17.3")
+  integrationTestImplementation("com.google.protobuf:protobuf-java-util:3.19.2")
   integrationTestImplementation("org.junit.jupiter:junit-jupiter:5.7.1")
   integrationTestImplementation("org.testcontainers:testcontainers:1.16.2")
   integrationTestImplementation("org.testcontainers:junit-jupiter:1.16.2")
@@ -51,10 +51,22 @@ tasks.integrationTest {
 
 hypertraceDocker {
   defaultImage {
+    imageName.set("hypertrace-query-service")
     javaApplication {
       port.set(8090)
     }
+    namespace.set("razorpay")
   }
+  tag("${project.name}" + "_" + versionBanner())
+}
+
+fun versionBanner(): String {
+  val os = com.bmuschko.gradle.docker.shaded.org.apache.commons.io.output.ByteArrayOutputStream()
+  project.exec {
+    commandLine = "git rev-parse --verify --short HEAD".split(" ")
+    standardOutput = os
+  }
+  return String(os.toByteArray()).trim()
 }
 
 tasks.jacocoIntegrationTestReport {
