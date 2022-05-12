@@ -15,24 +15,24 @@ import org.slf4j.LoggerFactory;
 // framework repo
 public class PlatformMetricRegistryUtil extends PlatformMetricsRegistry {
 
-    private static final Logger LOG = LoggerFactory.getLogger(PlatformMetricRegistryUtil.class);
+  private static final Logger LOG = LoggerFactory.getLogger(PlatformMetricRegistryUtil.class);
 
-    public static DistributionSummary registerDistributionSummary(
-            String name, Map<String, String> tags, boolean histogram) {
-        try {
-            Set<Tag> newTags = new HashSet<>();
-            Preconditions.checkNotNull(tags).forEach((k, v) -> newTags.add(new ImmutableTag(k, v)));
-            io.micrometer.core.instrument.DistributionSummary.Builder builder =
-                    DistributionSummary.builder(name)
-                            .tags(newTags)
-                            .maximumExpectedValue(604800.0); // minutes for 7 days
-            if (histogram) {
-                builder.publishPercentileHistogram();
-            }
-            return builder.register(getMeterRegistry());
-        } catch (Exception e) {
-            LOG.error("Error occurred while registering {} meter ", name, e);
-            return null;
-        }
+  public static DistributionSummary registerDistributionSummary(
+      String name, Map<String, String> tags, boolean histogram) {
+    try {
+      Set<Tag> newTags = new HashSet<>();
+      Preconditions.checkNotNull(tags).forEach((k, v) -> newTags.add(new ImmutableTag(k, v)));
+      io.micrometer.core.instrument.DistributionSummary.Builder builder =
+          DistributionSummary.builder(name)
+              .tags(newTags)
+              .maximumExpectedValue(604800.0); // minutes for 7 days
+      if (histogram) {
+        builder.publishPercentileHistogram();
+      }
+      return builder.register(getMeterRegistry());
+    } catch (Exception e) {
+      LOG.error("Error occurred while registering {} meter ", name, e);
+      return null;
     }
+  }
 }
