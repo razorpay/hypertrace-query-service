@@ -13,10 +13,8 @@ import io.grpc.Context;
 import io.grpc.Deadline;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
-import io.grpc.Status;
 import io.grpc.StatusException;
 import io.grpc.stub.ServerCallStreamObserver;
-import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.core.Single;
 import java.util.ArrayList;
@@ -38,7 +36,6 @@ import org.hypertrace.core.query.service.api.ResultSetChunk;
 import org.hypertrace.core.query.service.api.ResultSetMetadata;
 import org.hypertrace.core.query.service.api.Row;
 import org.hypertrace.core.query.service.api.Value;
-import org.hypertrace.core.query.service.validation.QueryValidator;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -55,23 +52,20 @@ public class QueryServiceImplTest {
   @Mock RequestContext mockContext;
 
   @Test
-  void propagatesErrorIfValidationError() {
+  void propagatesErrorIfNoTenantId() {
     QueryRequest originalRequest = QueryRequest.getDefaultInstance();
     RequestHandlerSelector mockSelector = mock(RequestHandlerSelector.class);
     QueryTransformationPipeline mockTransformationPipeline =
         mock(QueryTransformationPipeline.class);
-
-    QueryValidator mockValidator = mock(QueryValidator.class);
-    when(mockValidator.validate(originalRequest, mockContext))
-        .thenReturn(Completable.error(Status.INVALID_ARGUMENT.asException()));
+    when(mockContext.getTenantId()).thenReturn(Optional.empty());
     Context.current()
         .withValue(RequestContext.CURRENT, mockContext)
         .run(
             () ->
-                new QueryServiceImpl(mockSelector, mockTransformationPipeline, mockValidator)
+                new QueryServiceImpl(mockSelector, mockTransformationPipeline)
                     .execute(originalRequest, mockObserver));
     verify(mockObserver).setOnCancelHandler(any());
-    verify(mockObserver).onError(any(StatusException.class));
+    verify(mockObserver).onError(any(UnsupportedOperationException.class));
     verifyNoMoreInteractions(mockObserver);
   }
 
@@ -85,13 +79,11 @@ public class QueryServiceImplTest {
     when(mockContext.getTenantId()).thenReturn(Optional.of("test-tenant"));
     when(mockTransformationPipeline.transform(originalRequest, "test-tenant"))
         .thenReturn(Single.just(originalRequest));
-    QueryValidator mockValidator = mock(QueryValidator.class);
-    when(mockValidator.validate(originalRequest, mockContext)).thenReturn(Completable.complete());
     Context.current()
         .withValue(RequestContext.CURRENT, mockContext)
         .run(
             () ->
-                new QueryServiceImpl(mockSelector, mockTransformationPipeline, mockValidator)
+                new QueryServiceImpl(mockSelector, mockTransformationPipeline)
                     .execute(originalRequest, mockObserver));
 
     verify(mockObserver).setOnCancelHandler(any());
@@ -113,13 +105,11 @@ public class QueryServiceImplTest {
     when(mockContext.getTenantId()).thenReturn(Optional.of("test-tenant"));
     when(mockTransformationPipeline.transform(originalRequest, "test-tenant"))
         .thenReturn(Single.just(originalRequest));
-    QueryValidator mockValidator = mock(QueryValidator.class);
-    when(mockValidator.validate(originalRequest, mockContext)).thenReturn(Completable.complete());
     Context.current()
         .withValue(RequestContext.CURRENT, mockContext)
         .run(
             () ->
-                new QueryServiceImpl(mockSelector, mockTransformationPipeline, mockValidator)
+                new QueryServiceImpl(mockSelector, mockTransformationPipeline)
                     .execute(originalRequest, mockObserver));
 
     ResultSetChunk expectedChunk =

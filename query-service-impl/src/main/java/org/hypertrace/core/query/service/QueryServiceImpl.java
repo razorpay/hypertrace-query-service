@@ -9,43 +9,40 @@ import io.reactivex.rxjava3.core.Maybe;
 import io.reactivex.rxjava3.core.Observable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import lombok.extern.slf4j.Slf4j;
 import org.hypertrace.core.grpcutils.context.RequestContext;
 import org.hypertrace.core.grpcutils.server.rx.ServerCallStreamRxObserver;
 import org.hypertrace.core.query.service.api.QueryRequest;
 import org.hypertrace.core.query.service.api.QueryServiceGrpc;
 import org.hypertrace.core.query.service.api.ResultSetChunk;
-import org.hypertrace.core.query.service.validation.QueryValidator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Singleton
-@Slf4j
 class QueryServiceImpl extends QueryServiceGrpc.QueryServiceImplBase {
+  private static final Logger LOG = LoggerFactory.getLogger(QueryServiceImpl.class);
   private final RequestHandlerSelector handlerSelector;
   private final QueryTransformationPipeline queryTransformationPipeline;
-  private final QueryValidator queryValidator;
 
   @Inject
   public QueryServiceImpl(
       RequestHandlerSelector handlerSelector,
-      QueryTransformationPipeline queryTransformationPipeline,
-      QueryValidator queryValidator) {
+      QueryTransformationPipeline queryTransformationPipeline) {
     this.handlerSelector = handlerSelector;
     this.queryTransformationPipeline = queryTransformationPipeline;
-    this.queryValidator = queryValidator;
   }
 
   @Override
   public void execute(
       QueryRequest originalRequest, StreamObserver<ResultSetChunk> callStreamObserver) {
-    RequestContext requestContext = RequestContext.CURRENT.get();
-    this.queryValidator
-        .validate(originalRequest, requestContext)
-        .andThen(
-            Observable.defer(
-                () ->
-                    this.transformAndExecute(
-                        originalRequest, requestContext.getTenantId().orElseThrow())))
-        .doOnError(error -> log.error("Query failed: {}", originalRequest, error))
+    Maybe.fromOptional(RequestContext.CURRENT.get().getTenantId())
+        .switchIfEmpty(
+            Maybe.error(new UnsupportedOperationException("Tenant ID missing in request context")))
+        .flatMapObservable(tenantId -> this.transformAndExecute(originalRequest, tenantId))
+        .doOnError(
+            error -> {
+              LOG.error("Query failed: {}", originalRequest);
+              LOG.error("Query failure source", error);
+            })
         .subscribe(
             new ServerCallStreamRxObserver<>(
                 (ServerCallStreamObserver<ResultSetChunk>) callStreamObserver));

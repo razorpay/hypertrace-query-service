@@ -16,7 +16,7 @@ val generateLocalGoGrpcFiles = false
 
 protobuf {
   protoc {
-    artifact = "com.google.protobuf:protoc:3.19.2"
+    artifact = "com.google.protobuf:protoc:3.15.6"
   }
   plugins {
     // Optional: an artifact spec for a protoc plugin, with "grpc" as
@@ -71,12 +71,6 @@ dependencies {
   api("io.grpc:grpc-stub")
   api("javax.annotation:javax.annotation-api:1.3.2")
 
-  constraints {
-    implementation("com.google.protobuf:protobuf-java:3.19.2") {
-      because("https://snyk.io/vuln/SNYK-JAVA-COMGOOGLEPROTOBUF-2331703")
-    }
-  }
-
   testImplementation("org.junit.jupiter:junit-jupiter:5.7.1")
-  testImplementation("com.google.protobuf:protobuf-java-util:3.19.2")
+  testImplementation("com.google.protobuf:protobuf-java-util:3.15.6")
 }
