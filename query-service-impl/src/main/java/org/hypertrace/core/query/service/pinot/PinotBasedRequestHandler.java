@@ -453,7 +453,9 @@ public class PinotBasedRequestHandler implements RequestHandler {
       Set<String> referencedColumns = executionContext.getReferencedColumns();
       Preconditions.checkNotNull(referencedColumns);
       if (referencedColumns.contains(TAG_COLUMN)) {
-        pinotTagQueryExecutionTimer.record(stopwatch.elapsed());
+        Duration duration = stopwatch.elapsed();
+        pinotTagQueryExecutionTimer.record(duration);
+        LOG.debug("DURATION: {}", duration);
       }
     } catch (Exception e) {
       LOG.error("Error occurred while measuring PinotTagQueryExecutionTime: ", e);
