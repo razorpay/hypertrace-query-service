@@ -466,12 +466,9 @@ public class PinotBasedRequestHandler implements RequestHandler {
       Preconditions.checkNotNull(executionContext.getQueryTimeRange());
       if (executionContext.getQueryTimeRange().isPresent()) {
         Optional<QueryTimeRange> queryAge = executionContext.getQueryTimeRange();
-        if (queryAge.isPresent()) {
-          Instant startTimeInstant = (queryAge.get().getStartTime());
-          Instant currentInstant = Instant.now();
-          Duration duration = Duration.between(startTimeInstant, currentInstant);
-          measureRequestAge(duration);
-        }
+        assert queryAge.isPresent();
+        Duration duration = Duration.between((queryAge.get().getStartTime()), Instant.now());
+        measureRequestAge(duration);
       }
     } catch (Exception e) {
       LOG.error("Error occurred while measuring RequestSpan for Pinot query: ", e);
