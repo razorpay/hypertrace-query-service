@@ -65,7 +65,8 @@ public class PinotBasedRequestHandler implements RequestHandler {
   private static final String START_TIME_ATTRIBUTE_NAME_CONFIG_KEY = "startTimeAttributeName";
   private static final String SLOW_QUERY_THRESHOLD_MS_CONFIG = "slowQueryThresholdMs";
   private static final String PERCENTILE_AGGREGATION_FUNCTION_CONFIG = "percentileAggFunction";
-  private static final String TAG_COLUMN = "API_TRACE.tags";
+  private static final String TRACE_TAGS = "API_TRACE.tags";
+  private static final String SPAN_TAGS = "EVENT.spanTags";
 
   private static final int DEFAULT_SLOW_QUERY_THRESHOLD_MS = 3000;
   private static final Set<Operator> GTE_OPERATORS = Set.of(Operator.GE, Operator.GT, Operator.EQ);
@@ -452,7 +453,7 @@ public class PinotBasedRequestHandler implements RequestHandler {
     try {
       Set<String> referencedColumns = executionContext.getReferencedColumns();
       Preconditions.checkNotNull(referencedColumns);
-      if (referencedColumns.contains(TAG_COLUMN)) {
+      if (referencedColumns.contains(TRACE_TAGS) || referencedColumns.contains(SPAN_TAGS)) {
         Duration duration = stopwatch.elapsed();
         pinotTagQueryExecutionTimer.record(duration);
         LOG.debug("DURATION: {}", duration);
