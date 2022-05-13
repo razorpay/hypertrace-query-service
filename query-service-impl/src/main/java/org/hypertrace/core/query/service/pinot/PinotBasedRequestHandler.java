@@ -2,17 +2,24 @@ package org.hypertrace.core.query.service.pinot;
 
 import static org.hypertrace.core.query.service.ConfigUtils.optionallyGet;
 import static org.hypertrace.core.query.service.QueryRequestUtil.getLogicalColumnName;
+import static org.hypertrace.core.query.service.utils.PlatformMetricRegistryUtil.registerDistributionSummary;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.util.JsonFormat;
 import com.typesafe.config.Config;
+import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.Timer;
 import io.reactivex.rxjava3.core.Observable;
 import java.io.IOException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,6 +36,7 @@ import org.apache.pinot.client.ResultSet;
 import org.apache.pinot.client.ResultSetGroup;
 import org.hypertrace.core.query.service.ExecutionContext;
 import org.hypertrace.core.query.service.QueryCost;
+import org.hypertrace.core.query.service.QueryTimeRange;
 import org.hypertrace.core.query.service.RequestHandler;
 import org.hypertrace.core.query.service.api.Expression;
 import org.hypertrace.core.query.service.api.Expression.ValueCase;
@@ -57,6 +65,7 @@ public class PinotBasedRequestHandler implements RequestHandler {
   private static final String START_TIME_ATTRIBUTE_NAME_CONFIG_KEY = "startTimeAttributeName";
   private static final String SLOW_QUERY_THRESHOLD_MS_CONFIG = "slowQueryThresholdMs";
   private static final String PERCENTILE_AGGREGATION_FUNCTION_CONFIG = "percentileAggFunction";
+  private static final String TAG_COLUMN = "API_TRACE.tags";
 
   private static final int DEFAULT_SLOW_QUERY_THRESHOLD_MS = 3000;
   private static final Set<Operator> GTE_OPERATORS = Set.of(Operator.GE, Operator.GT, Operator.EQ);
@@ -82,6 +91,8 @@ public class PinotBasedRequestHandler implements RequestHandler {
       JsonFormat.printer().omittingInsignificantWhitespace();
 
   private Timer pinotQueryExecutionTimer;
+  private Timer pinotTagQueryExecutionTimer;
+  private DistributionSummary pinotQueryAgeDurationMetric;
   private int slowQueryThreshold = DEFAULT_SLOW_QUERY_THRESHOLD_MS;
 
   PinotBasedRequestHandler(String name, Config config) {
@@ -104,6 +115,10 @@ public class PinotBasedRequestHandler implements RequestHandler {
     // Registry the latency metric with handler as a tag.
     this.pinotQueryExecutionTimer =
         PlatformMetricsRegistry.registerTimer("pinot.query.latency", Map.of("handler", name), true);
+    this.pinotQueryAgeDurationMetric =
+        registerDistributionSummary("pinot.query.age", ImmutableMap.of(), true);
+    this.pinotTagQueryExecutionTimer =
+        PlatformMetricsRegistry.registerTimer("pinot.tag.query.latency", ImmutableMap.of(), true);
   }
 
   @Override
@@ -403,6 +418,9 @@ public class PinotBasedRequestHandler implements RequestHandler {
         LOG.error("An error occurred while executing: {}", pql.getKey(), ex);
         // Rethrow for the caller to return an error.
         throw new RuntimeException(ex);
+      } finally {
+        measureRequestAge(executionContext);
+        measurePinotTagQueryExecutionTime(executionContext, stopwatch);
       }
 
       if (LOG.isDebugEnabled()) {
@@ -427,6 +445,43 @@ public class PinotBasedRequestHandler implements RequestHandler {
     } catch (Throwable error) {
       return Observable.error(error);
     }
+  }
+
+  private void measurePinotTagQueryExecutionTime(
+      ExecutionContext executionContext, Stopwatch stopwatch) {
+    try {
+      Set<String> referencedColumns = executionContext.getReferencedColumns();
+      Preconditions.checkNotNull(referencedColumns);
+      if (referencedColumns.contains(TAG_COLUMN)) {
+        pinotTagQueryExecutionTimer.record(stopwatch.elapsed());
+      }
+    } catch (Exception e) {
+      LOG.error("Error occurred while measuring PinotTagQueryExecutionTime: ", e);
+    }
+  }
+
+  private void measureRequestAge(ExecutionContext executionContext) {
+    try {
+      Preconditions.checkNotNull(executionContext);
+      Preconditions.checkNotNull(executionContext.getQueryTimeRange());
+      if (executionContext.getQueryTimeRange().isPresent()) {
+        Optional<QueryTimeRange> queryAge = executionContext.getQueryTimeRange();
+        assert queryAge.isPresent();
+        Duration duration = Duration.between((queryAge.get().getStartTime()), Instant.now());
+        measureRequestAge(duration);
+      }
+    } catch (Exception e) {
+      LOG.error("Error occurred while measuring RequestSpan for Pinot query: ", e);
+    }
+  }
+
+  private void measureRequestAge(Duration timeRangeDuration) throws JsonProcessingException {
+    long minutes = timeRangeDuration.toMinutes();
+    pinotQueryAgeDurationMetric.record(minutes);
+    LOG.debug(
+        new ObjectMapper()
+            .writerWithDefaultPrettyPrinter()
+            .writeValueAsString(Map.of("bookmark", "QUERY_AGE", "duration", minutes)));
   }
 
   @Nonnull
