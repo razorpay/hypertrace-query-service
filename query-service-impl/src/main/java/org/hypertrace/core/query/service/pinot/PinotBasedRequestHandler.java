@@ -433,7 +433,7 @@ public class PinotBasedRequestHandler implements RequestHandler {
                 long requestTimeMs = stopwatch.stop().elapsed(TimeUnit.MILLISECONDS);
                 if (requestTimeMs > slowQueryThreshold) {
                   try {
-                    LOG.warn(
+                    LOG.debug(
                         "Query Execution time: {} ms, sqlQuery: {}, queryRequest: {}",
                         requestTimeMs,
                         pql.getKey(),
@@ -457,6 +457,7 @@ public class PinotBasedRequestHandler implements RequestHandler {
         pinotTagQueryExecutionTimer.record(duration);
         LOG.debug("DURATION: {}", duration);
       }
+      LOG.debug(referencedColumns.toString());
     } catch (Exception e) {
       LOG.error("Error occurred while measuring PinotTagQueryExecutionTime: ", e);
     }
