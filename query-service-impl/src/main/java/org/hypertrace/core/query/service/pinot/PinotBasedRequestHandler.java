@@ -20,15 +20,10 @@ import io.reactivex.rxjava3.core.Observable;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
@@ -67,6 +62,7 @@ public class PinotBasedRequestHandler implements RequestHandler {
   private static final String PERCENTILE_AGGREGATION_FUNCTION_CONFIG = "percentileAggFunction";
   private static final String TRACE_TAGS = "API_TRACE.tags";
   private static final String SPAN_TAGS = "EVENT.spanTags";
+  private static final String TAG_KEY_TO_LATENCY_TIME = "pinot.tag.key.query.latency";
 
   private static final int DEFAULT_SLOW_QUERY_THRESHOLD_MS = 3000;
   private static final Set<Operator> GTE_OPERATORS = Set.of(Operator.GE, Operator.GT, Operator.EQ);
@@ -93,6 +89,23 @@ public class PinotBasedRequestHandler implements RequestHandler {
 
   private Timer pinotQueryExecutionTimer;
   private Timer pinotTagQueryExecutionTimer;
+  private ConcurrentMap<String, Timer> tagToLatencyTimer = new ConcurrentHashMap<>();
+  private Set<String> setOfTagVals =
+      new HashSet<>(
+          Arrays.asList(
+              "Mozart-perf2",
+              "const",
+              "00bbc3c665b0427da0383f6c288ca5bf",
+              "Guzzle/5.3.1 curl/7.66.0 PHP/7.3.14",
+              "/v1/merchants/terminals"));
+  private Set<String> setOfTagKeys =
+      new HashSet<>(
+          Arrays.asList(
+              "servicename",
+              "span.kind",
+              "http.status_code",
+              "task_id",
+              "request.header.x-forwarded-port"));
   private DistributionSummary pinotQueryAgeDurationMetric;
   private int slowQueryThreshold = DEFAULT_SLOW_QUERY_THRESHOLD_MS;
 
@@ -389,7 +402,6 @@ public class PinotBasedRequestHandler implements RequestHandler {
     try {
       Stopwatch stopwatch = Stopwatch.createStarted();
       validateQueryRequest(executionContext, originalRequest);
-
       QueryRequest request;
       // Rewrite the request filter after applying the view filters.
       if (!viewDefinition.getColumnFilterMap().isEmpty()
@@ -421,7 +433,7 @@ public class PinotBasedRequestHandler implements RequestHandler {
         throw new RuntimeException(ex);
       } finally {
         measureRequestAge(executionContext);
-        measurePinotTagQueryExecutionTime(executionContext, stopwatch);
+        measurePinotTagQueryExecutionTime(executionContext, stopwatch, originalRequest);
       }
 
       if (LOG.isDebugEnabled()) {
@@ -449,7 +461,7 @@ public class PinotBasedRequestHandler implements RequestHandler {
   }
 
   private void measurePinotTagQueryExecutionTime(
-      ExecutionContext executionContext, Stopwatch stopwatch) {
+      ExecutionContext executionContext, Stopwatch stopwatch, QueryRequest originalRequest) {
     try {
       Set<String> referencedColumns = executionContext.getReferencedColumns();
       Preconditions.checkNotNull(referencedColumns);
@@ -457,6 +469,56 @@ public class PinotBasedRequestHandler implements RequestHandler {
         Duration duration = stopwatch.elapsed();
         pinotTagQueryExecutionTimer.record(duration);
         LOG.debug("DURATION: {}", duration);
+        String requestFilter = originalRequest.getFilter().toString();
+
+        String val = null;
+        String key = null;
+        String age = null;
+
+        for (String value : setOfTagVals) {
+          if (requestFilter.contains(value)) {
+            val = value;
+            break;
+          }
+        }
+
+        for (String key1 : setOfTagKeys) {
+          if (requestFilter.contains(key1)) {
+            key = key1;
+            break;
+          }
+        }
+
+        if (val != null || key != null) {
+          age =
+              String.valueOf(
+                  Duration.between(
+                          (executionContext.getQueryTimeRange().get().getStartTime()),
+                          Instant.now())
+                      .toMinutes());
+        }
+
+        if (val != null) {
+          String finalAge = age;
+          tagToLatencyTimer
+              .computeIfAbsent(
+                  val,
+                  v ->
+                      PlatformMetricsRegistry.registerTimer(
+                          TAG_KEY_TO_LATENCY_TIME, Map.of("val", v, "age", finalAge)))
+              .record(duration.toMillis(), TimeUnit.MILLISECONDS);
+        }
+
+        if (key != null) {
+          String finalAge = age;
+          tagToLatencyTimer
+              .computeIfAbsent(
+                  key,
+                  k ->
+                      PlatformMetricsRegistry.registerTimer(
+                          TAG_KEY_TO_LATENCY_TIME, Map.of("key", k, "age", finalAge)))
+              .record(duration.toMillis(), TimeUnit.MILLISECONDS);
+        }
       }
       LOG.debug(referencedColumns.toString());
     } catch (Exception e) {
