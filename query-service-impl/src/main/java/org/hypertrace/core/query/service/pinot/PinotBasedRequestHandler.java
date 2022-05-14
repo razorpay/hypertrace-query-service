@@ -89,8 +89,8 @@ public class PinotBasedRequestHandler implements RequestHandler {
 
   private Timer pinotQueryExecutionTimer;
   private Timer pinotTagQueryExecutionTimer;
-  private ConcurrentMap<String, Timer> tagToLatencyTimer = new ConcurrentHashMap<>();
-  private Set<String> setOfTagVals =
+  private static final ConcurrentMap<String, Timer> tagToLatencyTimer = new ConcurrentHashMap<>();
+  private static final Set<String> setOfTagVals =
       new HashSet<>(
           Arrays.asList(
               "Mozart-perf2",
@@ -98,7 +98,7 @@ public class PinotBasedRequestHandler implements RequestHandler {
               "00bbc3c665b0427da0383f6c288ca5bf",
               "Guzzle/5.3.1 curl/7.66.0 PHP/7.3.14",
               "/v1/merchants/terminals"));
-  private Set<String> setOfTagKeys =
+  private static final Set<String> setOfTagKeys =
       new HashSet<>(
           Arrays.asList(
               "servicename",
@@ -502,21 +502,19 @@ public class PinotBasedRequestHandler implements RequestHandler {
           String finalAge = age;
           tagToLatencyTimer
               .computeIfAbsent(
-                  val,
+                  val+"#"+age,
                   v ->
                       PlatformMetricsRegistry.registerTimer(
-                          TAG_KEY_TO_LATENCY_TIME, Map.of("val", v, "age", finalAge)))
+                          TAG_KEY_TO_LATENCY_TIME, Map.of("val", v, "age", finalAge), true))
               .record(duration.toMillis(), TimeUnit.MILLISECONDS);
-        }
-
-        if (key != null) {
+        } else if (key != null) {
           String finalAge = age;
           tagToLatencyTimer
               .computeIfAbsent(
-                  key,
+                  key+"#"+age,
                   k ->
                       PlatformMetricsRegistry.registerTimer(
-                          TAG_KEY_TO_LATENCY_TIME, Map.of("key", k, "age", finalAge)))
+                          TAG_KEY_TO_LATENCY_TIME, Map.of("key", k, "age", finalAge), true))
               .record(duration.toMillis(), TimeUnit.MILLISECONDS);
         }
       }
