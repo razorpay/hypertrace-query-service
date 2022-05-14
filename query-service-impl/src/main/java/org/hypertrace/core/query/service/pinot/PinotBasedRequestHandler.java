@@ -499,23 +499,17 @@ public class PinotBasedRequestHandler implements RequestHandler {
         }
 
         if (val != null) {
-          String finalAge = age;
-          tagToLatencyTimer
-              .computeIfAbsent(
-                  val+"#"+age,
-                  v ->
-                      PlatformMetricsRegistry.registerTimer(
-                          TAG_KEY_TO_LATENCY_TIME, Map.of("val", v, "age", finalAge), true))
-              .record(duration.toMillis(), TimeUnit.MILLISECONDS);
+          if(!tagToLatencyTimer.containsKey(val+"#"+age)) {
+            tagToLatencyTimer.put(val+"#"+age, PlatformMetricsRegistry.registerTimer(
+                    TAG_KEY_TO_LATENCY_TIME, Map.of("val", val, "age", age), true));
+          }
+          tagToLatencyTimer.get(val+"#"+age).record(duration.toMillis(), TimeUnit.MILLISECONDS);
         } else if (key != null) {
-          String finalAge = age;
-          tagToLatencyTimer
-              .computeIfAbsent(
-                  key+"#"+age,
-                  k ->
-                      PlatformMetricsRegistry.registerTimer(
-                          TAG_KEY_TO_LATENCY_TIME, Map.of("key", k, "age", finalAge), true))
-              .record(duration.toMillis(), TimeUnit.MILLISECONDS);
+          if(!tagToLatencyTimer.containsKey(key+"#"+age)) {
+            tagToLatencyTimer.put(key+"#"+age, PlatformMetricsRegistry.registerTimer(
+                    TAG_KEY_TO_LATENCY_TIME, Map.of("key", key, "age", age), true));
+          }
+          tagToLatencyTimer.get(key+"#"+age).record(duration.toMillis(), TimeUnit.MILLISECONDS);
         }
       }
       LOG.debug(referencedColumns.toString());
