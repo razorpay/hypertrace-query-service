@@ -63,6 +63,7 @@ public class PinotBasedRequestHandler implements RequestHandler {
   private static final String TRACE_TAGS = "API_TRACE.tags";
   private static final String SPAN_TAGS = "EVENT.spanTags";
   private static final String TAG_KEY_TO_LATENCY_TIME = "pinot.tag.key.query.latency";
+  private static final String TAG_VAL_TO_LATENCY_TIME = "pinot.tag.val.query.latency";
 
   private static final int DEFAULT_SLOW_QUERY_THRESHOLD_MS = 3000;
   private static final Set<Operator> GTE_OPERATORS = Set.of(Operator.GE, Operator.GT, Operator.EQ);
@@ -501,7 +502,7 @@ public class PinotBasedRequestHandler implements RequestHandler {
         if (val != null) {
           if(!tagToLatencyTimer.containsKey(val+"#"+age)) {
             tagToLatencyTimer.put(val+"#"+age, PlatformMetricsRegistry.registerTimer(
-                    TAG_KEY_TO_LATENCY_TIME, Map.of("val", val, "age", age), true));
+                    TAG_VAL_TO_LATENCY_TIME, Map.of("val", val, "age", age), true));
           }
           tagToLatencyTimer.get(val+"#"+age).record(duration.toMillis(), TimeUnit.MILLISECONDS);
         } else if (key != null) {
