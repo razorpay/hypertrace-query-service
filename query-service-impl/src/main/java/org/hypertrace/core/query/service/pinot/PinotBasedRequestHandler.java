@@ -463,7 +463,6 @@ public class PinotBasedRequestHandler implements RequestHandler {
   private void measureRequestAge(ExecutionContext executionContext) {
     try {
       Preconditions.checkNotNull(executionContext);
-      Preconditions.checkNotNull(executionContext.getQueryTimeRange());
       if (executionContext.getQueryTimeRange().isPresent()) {
         Optional<QueryTimeRange> queryAge = executionContext.getQueryTimeRange();
         assert queryAge.isPresent();
