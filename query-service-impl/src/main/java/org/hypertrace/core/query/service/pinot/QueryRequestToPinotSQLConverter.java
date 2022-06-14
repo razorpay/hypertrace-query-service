@@ -210,7 +210,7 @@ class QueryRequestToPinotSQLConverter {
     try {
       /* The below log prints filter like ' start_time_millis >= ? ' (without quotes).
       Note: operator is also necessary as it can help in figuring out the  appropriate type of index like range index etc. */
-      LOG.info("BOOKMARK: SIMPLIFIED_CHILD_FILTER, childFilter with operator: {}", pinotFilter);
+      LOG.info("BOOKMARK: SIMPLIFIED_PINOT_FILTER, childFilter with operator: {}", pinotFilter);
       if (pinotFilterVsCounter.size() < MAX_PINOT_FILTER_TO_FREQ_METRIC_COUNTERS) {
         pinotFilterVsCounter
             .computeIfAbsent(
