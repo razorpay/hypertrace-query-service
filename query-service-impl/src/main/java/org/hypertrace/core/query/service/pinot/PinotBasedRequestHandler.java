@@ -65,6 +65,9 @@ public class PinotBasedRequestHandler implements RequestHandler {
   private static final String START_TIME_ATTRIBUTE_NAME_CONFIG_KEY = "startTimeAttributeName";
   private static final String SLOW_QUERY_THRESHOLD_MS_CONFIG = "slowQueryThresholdMs";
   private static final String PERCENTILE_AGGREGATION_FUNCTION_CONFIG = "percentileAggFunction";
+  private static final String MAX_PINOT_FILTER_TO_FREQ_METRIC_COUNTERS_CONFIG_KEY =
+      "maxPinotFilterMetricCounters";
+  public static Integer MAX_PINOT_FILTER_TO_FREQ_METRIC_COUNTERS = 500;
   private static final String TRACE_TAGS = "API_TRACE.tags";
   private static final String SPAN_TAGS = "EVENT.spanTags";
 
@@ -169,6 +172,10 @@ public class PinotBasedRequestHandler implements RequestHandler {
         "Using {}ms as the threshold for logging slow queries of handler: {}",
         slowQueryThreshold,
         name);
+
+    if (config.hasPath(MAX_PINOT_FILTER_TO_FREQ_METRIC_COUNTERS_CONFIG_KEY)) {
+      MAX_PINOT_FILTER_TO_FREQ_METRIC_COUNTERS = config.getInt(SLOW_QUERY_THRESHOLD_MS_CONFIG);
+    }
 
     initMetrics();
   }
