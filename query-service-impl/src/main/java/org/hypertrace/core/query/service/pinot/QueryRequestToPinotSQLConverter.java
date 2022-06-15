@@ -160,6 +160,7 @@ class QueryRequestToPinotSQLConverter {
           builder.append(",");
           builder.append(convertExpressionToString(rhs, paramsBuilder, executionContext));
           builder.append(")");
+          logPinotFilter(builder.toString());
           break;
         case CONTAINS_KEY:
         case NOT_CONTAINS_KEY:
@@ -167,6 +168,7 @@ class QueryRequestToPinotSQLConverter {
           builder.append(convertExpressionToMapKeyColumn(filter.getLhs()));
           builder.append(" ");
           builder.append(operator);
+          logPinotFilter(builder.toString());
           builder.append(" ");
           builder.append(convertLiteralToString(kvp.get(MAP_KEY_INDEX), paramsBuilder));
           break;
@@ -191,6 +193,7 @@ class QueryRequestToPinotSQLConverter {
           builder.append(valCol);
           builder.append(") = ");
           builder.append(convertLiteralToString(kvp.get(MAP_VALUE_INDEX), paramsBuilder));
+          logPinotFilter(builder.toString());
           break;
         default:
           rhs = handleValueConversionForLiteralExpression(filter.getLhs(), filter.getRhs());
@@ -198,17 +201,17 @@ class QueryRequestToPinotSQLConverter {
               convertExpressionToString(filter.getLhs(), paramsBuilder, executionContext));
           builder.append(" ");
           builder.append(operator);
+          logPinotFilter(builder.toString());
           builder.append(" ");
           builder.append(convertExpressionToString(rhs, paramsBuilder, executionContext));
       }
-      logPinotFilter(builder.toString());
     }
     return builder.toString();
   }
 
   private void logPinotFilter(String pinotFilter) {
     try {
-      /* The below log prints filter like ' start_time_millis >= ? ' (without quotes).
+      /* The below log prints filter like ' start_time_millis >=  ' (without quotes).
       Note: operator is also necessary as it can help in figuring out the  appropriate type of index like range index etc. */
       LOG.info("BOOKMARK: SIMPLIFIED_PINOT_FILTER, childFilter with operator: {}", pinotFilter);
       if (pinotFilterVsCounter.size() < MAX_PINOT_FILTER_TO_FREQ_METRIC_COUNTERS) {
