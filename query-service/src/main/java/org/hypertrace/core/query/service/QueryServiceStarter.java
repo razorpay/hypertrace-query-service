@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class QueryServiceStarter extends PlatformService {
+
   private static final String SERVICE_NAME_CONFIG = "service.name";
   private static final String SERVICE_PORT_CONFIG = "service.port";
   private static final String QUERY_SERVICE_CONFIG = "service.config";
