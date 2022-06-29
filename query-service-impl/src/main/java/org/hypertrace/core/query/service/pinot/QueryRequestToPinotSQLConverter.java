@@ -211,6 +211,7 @@ class QueryRequestToPinotSQLConverter {
 
   private void logPinotFilter(String pinotFilter) {
     try {
+
       /* The below log prints filter like ' start_time_millis >=  ' (without quotes).
       Note: operator is also necessary as it can help in figuring out the  appropriate type of index like range index etc. */
       LOG.info("BOOKMARK: SIMPLIFIED_PINOT_FILTER, childFilter with operator: {}", pinotFilter);
