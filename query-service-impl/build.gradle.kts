@@ -9,6 +9,7 @@ tasks.test {
 }
 
 dependencies {
+  implementation("io.pyroscope:agent:0.9.1")
   constraints {
     implementation("io.netty:netty:3.10.6.Final") {
       because("https://snyk.io/vuln/SNYK-JAVA-IONETTY-30430")

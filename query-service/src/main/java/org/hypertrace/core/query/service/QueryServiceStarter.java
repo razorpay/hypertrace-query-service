@@ -2,12 +2,10 @@ package org.hypertrace.core.query.service;
 
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
+import io.pyroscope.http.Format;
+import io.pyroscope.javaagent.PyroscopeAgent;
 import java.io.IOException;
 import java.time.Duration;
-
-import io.pyroscope.http.Format;
-import io.pyroscope.javaagent.EventType;
-import io.pyroscope.javaagent.PyroscopeAgent;
 import org.hypertrace.core.grpcutils.server.InterceptorUtil;
 import org.hypertrace.core.serviceframework.PlatformService;
 import org.hypertrace.core.serviceframework.config.ConfigClient;
@@ -29,16 +27,16 @@ public class QueryServiceStarter extends PlatformService {
 
   @Override
   protected void doInit() {
-        PyroscopeAgent.start(
-                new io.pyroscope.javaagent.config.Config.Builder()
-                        .setApplicationName("query-service")
-                        .setFormat(Format.JFR)
-                        .setServerAddress("https://pyroscope.dev.razorpay.in")
-                        .setUploadInterval(Duration.ofSeconds(50))
-                        .setProfilingInterval(Duration.ofSeconds(30))
-                        // Optionally, if authentication is enabled, specify the API key.
-                        // .setAuthToken(System.getenv("PYROSCOPE_AUTH_TOKEN"))
-                        .build());
+    PyroscopeAgent.start(
+        new io.pyroscope.javaagent.config.Config.Builder()
+            .setApplicationName("query-service")
+            .setFormat(Format.JFR)
+            .setServerAddress("https://pyroscope.dev.razorpay.in")
+            .setUploadInterval(Duration.ofSeconds(50))
+            .setProfilingInterval(Duration.ofSeconds(30))
+            // Optionally, if authentication is enabled, specify the API key.
+            // .setAuthToken(System.getenv("PYROSCOPE_AUTH_TOKEN"))
+            .build());
     this.serviceName = getAppConfig().getString(SERVICE_NAME_CONFIG);
     this.serverPort = getAppConfig().getInt(SERVICE_PORT_CONFIG);
 

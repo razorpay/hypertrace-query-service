@@ -9,6 +9,7 @@ plugins {
 }
 
 dependencies {
+  implementation("io.pyroscope:agent:0.9.1")
   implementation(project(":query-service-impl"))
   implementation("org.hypertrace.core.grpcutils:grpc-server-utils:0.7.0")
   implementation("org.hypertrace.core.serviceframework:platform-service-framework:0.1.33")

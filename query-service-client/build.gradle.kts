@@ -7,6 +7,7 @@ plugins {
 
 dependencies {
   api(project(":query-service-api"))
+  implementation("io.pyroscope:agent:0.9.1")
   implementation("org.hypertrace.core.grpcutils:grpc-client-utils:0.7.0")
 
   // Logging
