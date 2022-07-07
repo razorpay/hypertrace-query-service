@@ -3,6 +3,10 @@ package org.hypertrace.core.query.service;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import java.io.IOException;
+
+import io.pyroscope.http.Format;
+import io.pyroscope.javaagent.EventType;
+import io.pyroscope.javaagent.PyroscopeAgent;
 import org.hypertrace.core.grpcutils.server.InterceptorUtil;
 import org.hypertrace.core.serviceframework.PlatformService;
 import org.hypertrace.core.serviceframework.config.ConfigClient;
@@ -24,6 +28,15 @@ public class QueryServiceStarter extends PlatformService {
 
   @Override
   protected void doInit() {
+        PyroscopeAgent.start(
+                new io.pyroscope.javaagent.config.Config.Builder()
+                        .setApplicationName("query-service")
+                        .setProfilingEvent(EventType.ITIMER)
+                        .setFormat(Format.JFR)
+                        .setServerAddress("https://pyroscope.dev.razorpay.in")
+                        // Optionally, if authentication is enabled, specify the API key.
+                        // .setAuthToken(System.getenv("PYROSCOPE_AUTH_TOKEN"))
+                        .build());
     this.serviceName = getAppConfig().getString(SERVICE_NAME_CONFIG);
     this.serverPort = getAppConfig().getInt(SERVICE_PORT_CONFIG);
 
