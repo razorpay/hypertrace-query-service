@@ -33,10 +33,8 @@ public class QueryServiceStarter extends PlatformService {
             new io.pyroscope.javaagent.config.Config.Builder()
                     .setApplicationName(this.serviceName)
                     .setFormat(Format.JFR)
-                    .setProfilingEvent(EventType.CPU)
+                    .setProfilingEvent(EventType.ITIMER)
                     .setServerAddress("https://pyroscope.dev.razorpay.in")
-                    .setUploadInterval(Duration.ofSeconds(50))
-                    .setProfilingInterval(Duration.ofSeconds(30))
                     // Optionally, if authentication is enabled, specify the API key.
                     // .setAuthToken(System.getenv("PYROSCOPE_AUTH_TOKEN"))
                     .build());

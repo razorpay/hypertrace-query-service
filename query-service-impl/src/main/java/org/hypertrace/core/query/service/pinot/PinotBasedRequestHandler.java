@@ -16,6 +16,8 @@ import com.google.protobuf.util.JsonFormat;
 import com.typesafe.config.Config;
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.Timer;
+import io.pyroscope.labels.LabelsSet;
+import io.pyroscope.labels.Pyroscope;
 import io.reactivex.rxjava3.core.Observable;
 import java.io.IOException;
 import java.time.Duration;
@@ -420,10 +422,12 @@ public class PinotBasedRequestHandler implements RequestHandler {
         // Rethrow for the caller to return an error.
         throw new RuntimeException(ex);
       } finally {
-        if (canMeasureRequestAge(executionContext)) {
-          measureRequestAge(executionContext);
-        }
-        measurePinotTagQueryExecutionTime(executionContext, stopwatch);
+        Pyroscope.LabelsWrapper.run(new LabelsSet("MetricMeasurement", "QueryAge"), () -> {
+          if (canMeasureRequestAge(executionContext)) {
+            measureRequestAge(executionContext);
+          }
+          measurePinotTagQueryExecutionTime(executionContext, stopwatch);
+        });
       }
 
       if (LOG.isDebugEnabled()) {
