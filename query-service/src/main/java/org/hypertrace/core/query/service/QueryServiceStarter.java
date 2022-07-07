@@ -31,7 +31,7 @@ public class QueryServiceStarter extends PlatformService {
     this.serviceName = getAppConfig().getString(SERVICE_NAME_CONFIG);
     PyroscopeAgent.start(
             new io.pyroscope.javaagent.config.Config.Builder()
-                    .setApplicationName(this.serviceName)
+                    .setApplicationName("Query-Service")
                     .setFormat(Format.JFR)
                     .setProfilingEvent(EventType.ITIMER)
                     .setServerAddress("https://pyroscope.dev.razorpay.in")
