@@ -3,6 +3,7 @@ package org.hypertrace.core.query.service;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.pyroscope.http.Format;
+import io.pyroscope.javaagent.EventType;
 import io.pyroscope.javaagent.PyroscopeAgent;
 import java.io.IOException;
 import java.time.Duration;
@@ -27,17 +28,18 @@ public class QueryServiceStarter extends PlatformService {
 
   @Override
   protected void doInit() {
-    PyroscopeAgent.start(
-        new io.pyroscope.javaagent.config.Config.Builder()
-            .setApplicationName("query-service")
-            .setFormat(Format.JFR)
-            .setServerAddress("https://pyroscope.dev.razorpay.in")
-            .setUploadInterval(Duration.ofSeconds(50))
-            .setProfilingInterval(Duration.ofSeconds(30))
-            // Optionally, if authentication is enabled, specify the API key.
-            // .setAuthToken(System.getenv("PYROSCOPE_AUTH_TOKEN"))
-            .build());
     this.serviceName = getAppConfig().getString(SERVICE_NAME_CONFIG);
+    PyroscopeAgent.start(
+            new io.pyroscope.javaagent.config.Config.Builder()
+                    .setApplicationName(this.serviceName)
+                    .setFormat(Format.JFR)
+                    .setProfilingEvent(EventType.CPU)
+                    .setServerAddress("https://pyroscope.dev.razorpay.in")
+                    .setUploadInterval(Duration.ofSeconds(50))
+                    .setProfilingInterval(Duration.ofSeconds(30))
+                    // Optionally, if authentication is enabled, specify the API key.
+                    // .setAuthToken(System.getenv("PYROSCOPE_AUTH_TOKEN"))
+                    .build());
     this.serverPort = getAppConfig().getInt(SERVICE_PORT_CONFIG);
 
     LOG.info("Creating the Query Service Server on port {}", serverPort);
