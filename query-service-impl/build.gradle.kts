@@ -34,7 +34,7 @@ dependencies {
   implementation("org.hypertrace.core.serviceframework:service-framework-spi:0.1.33")
   implementation("com.google.inject:guice:5.0.1")
   implementation(files("../patch/pinot-java-client-0.6.0-tls.jar"))
-  implementation ("com.fasterxml.jackson.core:jackson-databind:2.13.1")
+  implementation("com.fasterxml.jackson.core:jackson-databind:2.13.1")
 //  implementation("org.apache.pinot:pinot-java-client:0.6.0") {
 //    // We want to use log4j2 impl so exclude the log4j binding of slf4j
 //    exclude("org.slf4j", "slf4j-log4j12")
