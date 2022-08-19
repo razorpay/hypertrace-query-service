@@ -270,17 +270,17 @@ public class HTPinotQueriesTest {
   private static boolean areMessagesConsumed(Map<String, Long> endOffSetMap) throws Exception {
     ListConsumerGroupsResult listConsumerGroups = adminClient.listConsumerGroups();
     List<String> groupIds =
-            listConsumerGroups.all().get().stream()
-                    .filter(consumerGroupListing -> consumerGroupListing.isSimpleConsumerGroup())
-                    .map(consumerGroupListing -> consumerGroupListing.groupId())
-                    .collect(Collectors.toUnmodifiableList());
+        listConsumerGroups.all().get().stream()
+            .filter(consumerGroupListing -> consumerGroupListing.isSimpleConsumerGroup())
+            .map(consumerGroupListing -> consumerGroupListing.groupId())
+            .collect(Collectors.toUnmodifiableList());
 
     Map<TopicPartition, OffsetAndMetadata> offsetAndMetadataMap = new HashMap<>();
     for (String groupId : groupIds) {
       ListConsumerGroupOffsetsResult listConsumerGroupOffsetsResult =
-              adminClient.listConsumerGroupOffsets(groupId);
+          adminClient.listConsumerGroupOffsets(groupId);
       Map<TopicPartition, OffsetAndMetadata> metadataMap =
-              listConsumerGroupOffsetsResult.partitionsToOffsetAndMetadata().get();
+          listConsumerGroupOffsetsResult.partitionsToOffsetAndMetadata().get();
       metadataMap.forEach((k, v) -> offsetAndMetadataMap.putIfAbsent(k, v));
     }
 
@@ -288,7 +288,7 @@ public class HTPinotQueriesTest {
       return false;
     }
     return offsetAndMetadataMap.entrySet().stream()
-            .noneMatch(k -> k.getValue().offset() < endOffSetMap.get(k.getKey().topic()));
+        .noneMatch(k -> k.getValue().offset() < endOffSetMap.get(k.getKey().topic()));
   }
 
   private static void updateTraceTimeStamp(StructuredTrace trace) {
