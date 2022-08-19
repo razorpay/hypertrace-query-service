@@ -15,19 +15,14 @@ import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.avro.file.DataFileReader;
 import org.apache.avro.specific.SpecificDatumReader;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsResult;
+import org.apache.kafka.clients.admin.ListConsumerGroupsResult;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -273,15 +268,27 @@ public class HTPinotQueriesTest {
   }
 
   private static boolean areMessagesConsumed(Map<String, Long> endOffSetMap) throws Exception {
-    ListConsumerGroupOffsetsResult consumerGroupOffsetsResult =
-        adminClient.listConsumerGroupOffsets("");
-    Map<TopicPartition, OffsetAndMetadata> offsetAndMetadataMap =
-        consumerGroupOffsetsResult.partitionsToOffsetAndMetadata().get();
+    ListConsumerGroupsResult listConsumerGroups = adminClient.listConsumerGroups();
+    List<String> groupIds =
+            listConsumerGroups.all().get().stream()
+                    .filter(consumerGroupListing -> consumerGroupListing.isSimpleConsumerGroup())
+                    .map(consumerGroupListing -> consumerGroupListing.groupId())
+                    .collect(Collectors.toUnmodifiableList());
+
+    Map<TopicPartition, OffsetAndMetadata> offsetAndMetadataMap = new HashMap<>();
+    for (String groupId : groupIds) {
+      ListConsumerGroupOffsetsResult listConsumerGroupOffsetsResult =
+              adminClient.listConsumerGroupOffsets(groupId);
+      Map<TopicPartition, OffsetAndMetadata> metadataMap =
+              listConsumerGroupOffsetsResult.partitionsToOffsetAndMetadata().get();
+      metadataMap.forEach((k, v) -> offsetAndMetadataMap.putIfAbsent(k, v));
+    }
+
     if (offsetAndMetadataMap.size() < 6) {
       return false;
     }
     return offsetAndMetadataMap.entrySet().stream()
-        .noneMatch(k -> k.getValue().offset() < endOffSetMap.get(k.getKey().topic()));
+            .noneMatch(k -> k.getValue().offset() < endOffSetMap.get(k.getKey().topic()));
   }
 
   private static void updateTraceTimeStamp(StructuredTrace trace) {
