@@ -269,7 +269,7 @@ public class HTPinotQueriesTest {
     // stop this service
     viewGen.stop();
 
-    return retry < 5;
+    return retry < 50;
   }
 
   private static boolean areMessagesConsumed(Map<String, Long> endOffSetMap) throws Exception {
