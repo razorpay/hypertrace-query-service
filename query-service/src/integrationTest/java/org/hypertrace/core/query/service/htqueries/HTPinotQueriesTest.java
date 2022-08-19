@@ -263,7 +263,7 @@ public class HTPinotQueriesTest {
             "span-event-view", 50L,
             "log-event-view", 0L);
     int retry = 0;
-    while (!areMessagesConsumed(endOffSetMap) && retry++ < 5) {
+    while (!areMessagesConsumed(endOffSetMap) && retry++ < 50) {
       Thread.sleep(6000);
     }
     // stop this service
