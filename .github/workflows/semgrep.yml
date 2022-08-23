@@ -2,6 +2,7 @@ name: SecurityChecks
 on:
   pull_request: {}
   push:
+    branches: ["rzp_main"]
 jobs:
   semgrep:
     name: Scan
