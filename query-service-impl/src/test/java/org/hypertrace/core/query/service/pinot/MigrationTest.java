@@ -308,7 +308,7 @@ public class MigrationTest {
 
     assertPQLQuery(
         builder.build(),
-        "select service_name, span_name, count(*), avg(duration_millis) from SpanEventView"
+        "select service_name, span_name, count(*), avg(duration_micros) from SpanEventView"
             + " where "
             + viewDefinition.getTenantIdColumn()
             + " = '"
@@ -330,14 +330,14 @@ public class MigrationTest {
 
     assertPQLQuery(
         builder.build(),
-        "select service_name, span_name, count(*), avg(duration_millis) from SpanEventView"
+        "select service_name, span_name, count(*), avg(duration_micros) from SpanEventView"
             + " where "
             + viewDefinition.getTenantIdColumn()
             + " = '"
             + TENANT_ID
             + "' "
             + "and ( start_time_millis > 1570658506605 and end_time_millis < 1570744906673 )"
-            + " group by service_name, span_name order by service_name, avg(duration_millis) desc , count(*) desc  limit 20",
+            + " group by service_name, span_name order by service_name, avg(duration_micros) desc , count(*) desc  limit 20",
         viewDefinition,
         executionContext);
   }
@@ -530,7 +530,7 @@ public class MigrationTest {
     defaultMockingForExecutionContext();
     assertPQLQuery(
         builder.build(),
-        "select mapValue(tags__KEYS,'span.kind',tags__VALUES), AVG(duration_millis) FROM spanEventView"
+        "select mapValue(tags__KEYS,'span.kind',tags__VALUES), AVG(duration_micros) FROM spanEventView"
             + " where "
             + viewDefinition.getTenantIdColumn()
             + " = '"
@@ -571,7 +571,7 @@ public class MigrationTest {
 
     Expression avg =
         createAliasedFunctionExpressionWithSimpleAttribute(
-                "AVG", "Span.duration_millis", "avg_duration")
+                "AVG", "Span.duration_micros", "avg_duration")
             .build();
     builder.addSelection(avg);
 
@@ -604,7 +604,7 @@ public class MigrationTest {
     builder.addAggregation(createCountByColumnSelectionWithSimpleAttribute("Span.id"));
     Expression avg =
         createFunctionExpression(
-            "AVG", createSimpleAttributeExpression("Span.duration_millis").build());
+            "AVG", createSimpleAttributeExpression("Span.duration_micros").build());
     builder.addAggregation(avg);
 
     Filter startTimeFilter =
@@ -630,7 +630,7 @@ public class MigrationTest {
     builder.addAggregation(createCountByColumnSelectionWithSimpleAttribute("Span.id"));
     Expression avg =
         createFunctionExpression(
-            "AVG", createSimpleAttributeExpression("Span.duration_millis").build());
+            "AVG", createSimpleAttributeExpression("Span.duration_micros").build());
     builder.addAggregation(avg);
 
     Filter startTimeFilter =
@@ -655,7 +655,7 @@ public class MigrationTest {
     builder.addOrderBy(
         createOrderByExpression(
             createAliasedFunctionExpressionWithSimpleAttribute(
-                "AVG", "Span.duration_millis", "avg_duration_millis"),
+                "AVG", "Span.duration_micros", "avg_duration_micros"),
             SortOrder.DESC));
     builder.addOrderBy(
         createOrderByExpression(
