@@ -88,7 +88,7 @@ public class HTPinotQueriesTest {
     kafkaZk.start();
 
     pinotServiceManager =
-        new GenericContainer<>(DockerImageName.parse("hypertrace/pinot-servicemanager:main"))
+        new GenericContainer<>(DockerImageName.parse("triptitripathi49/rzp_pinot:test"))
             .withNetwork(network)
             .withNetworkAliases("pinot-controller", "pinot-server", "pinot-broker")
             .withExposedPorts(8099, 9000)
