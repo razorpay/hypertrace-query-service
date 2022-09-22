@@ -8,6 +8,10 @@ tasks.test {
   useJUnitPlatform()
 }
 
+repositories {
+  maven("https://repo.repsy.io/mvn/user548/pinot-java-client-060-tls")
+}
+
 dependencies {
   constraints {
     implementation("io.netty:netty:3.10.6.Final") {
@@ -33,7 +37,8 @@ dependencies {
   implementation("org.hypertrace.core.attribute.service:caching-attribute-service-client:0.12.3")
   implementation("org.hypertrace.core.serviceframework:service-framework-spi:0.1.33")
   implementation("com.google.inject:guice:5.0.1")
-  implementation(files("../patch/pinot-java-client-0.6.0-tls.jar"))
+  //implementation(files("../patch/pinot-java-client-0.6.0-tls.jar"))
+  implementation(group = "org.apache.pinot", name="pinot-java-client", version ="0.6.0-tls")
   implementation("com.fasterxml.jackson.core:jackson-databind:2.13.1")
 //  implementation("org.apache.pinot:pinot-java-client:0.6.0") {
 //    // We want to use log4j2 impl so exclude the log4j binding of slf4j
