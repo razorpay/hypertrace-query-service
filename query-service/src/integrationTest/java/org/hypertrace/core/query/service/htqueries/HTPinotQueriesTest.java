@@ -13,11 +13,13 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.typesafe.config.ConfigFactory;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
 import org.apache.avro.file.DataFileReader;
 import org.apache.avro.specific.SpecificDatumReader;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -39,6 +41,7 @@ import org.hypertrace.core.query.service.api.ResultSetChunk;
 import org.hypertrace.core.query.service.api.Row;
 import org.hypertrace.core.query.service.client.QueryServiceClient;
 import org.hypertrace.core.query.service.client.QueryServiceConfig;
+import org.hypertrace.core.query.service.htqueries.utils.TestUtilities;
 import org.hypertrace.core.serviceframework.IntegrationTestServerUtil;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -324,6 +327,8 @@ public class HTPinotQueriesTest {
         row -> {
           double val1 = Double.parseDouble(row.getColumn(2).getString());
           double val2 = Double.parseDouble(row.getColumn(3).getString()) / divisor;
+          LOG.info("value 1 is &&&&&&&&&&& {}, {}", val1, row.getColumn(2).getString());
+          LOG.info("value 2 is &&&&&&&&&&&& {}, {}", val2, row.getColumn(3).getString());
           assertTrue(Math.abs(val1 - val2) < Math.pow(10, -3));
         });
   }
@@ -350,6 +355,7 @@ public class HTPinotQueriesTest {
         queryServiceClient.executeQuery(ServicesQueries.buildAvgRateQuery(), TENANT_ID_MAP, 10000);
     List<ResultSetChunk> list = Streams.stream(itr).collect(Collectors.toList());
     List<Row> rows = list.get(0).getRowList();
+    LOG.info("Row List is ***************************** {}", rows);
     assertEquals(4, rows.size());
     List<String> serviceNames =
         new ArrayList<>(Arrays.asList("frontend", "driver", "route", "customer"));
