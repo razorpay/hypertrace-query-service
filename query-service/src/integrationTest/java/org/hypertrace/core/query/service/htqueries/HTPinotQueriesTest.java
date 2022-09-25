@@ -317,6 +317,8 @@ public class HTPinotQueriesTest {
         row -> {
           double val1 = Double.parseDouble(row.getColumn(2).getString());
           double val2 = Double.parseDouble(row.getColumn(3).getString()) / divisor;
+          LOG.info("value 1 is &&&&&&&&&&& {}, {}", val1, row.getColumn(2).getString());
+          LOG.info("value 2 is &&&&&&&&&&&& {}, {}", val2, row.getColumn(3).getString());
           assertTrue(Math.abs(val1 - val2) < Math.pow(10, -3));
         });
   }
@@ -343,6 +345,7 @@ public class HTPinotQueriesTest {
         queryServiceClient.executeQuery(ServicesQueries.buildAvgRateQuery(), TENANT_ID_MAP, 10000);
     List<ResultSetChunk> list = Streams.stream(itr).collect(Collectors.toList());
     List<Row> rows = list.get(0).getRowList();
+    LOG.info("Row List is ***************************** {}", rows);
     assertEquals(4, rows.size());
     List<String> serviceNames =
         new ArrayList<>(Arrays.asList("frontend", "driver", "route", "customer"));
