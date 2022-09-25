@@ -51,7 +51,7 @@ tasks.integrationTest {
 
 hypertraceDocker {
   defaultImage {
-    imageName.set("hypertrace-ui")
+    imageName.set("hypertrace-query-service")
     javaApplication {
       port.set(8090)
     }
