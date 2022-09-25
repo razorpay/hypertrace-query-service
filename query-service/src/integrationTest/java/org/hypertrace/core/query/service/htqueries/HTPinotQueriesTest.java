@@ -168,7 +168,8 @@ public class HTPinotQueriesTest {
 
   private static boolean bootstrapConfig() throws Exception {
     GenericContainer<?> bootstrapper =
-        new GenericContainer<>(DockerImageName.parse("hypertrace/config-bootstrapper:main"))
+        new GenericContainer<>(
+                DockerImageName.parse("triptitripathi49/rzp_config_bootstrapper:test"))
             .withNetwork(network)
             .dependsOn(attributeService)
             .withEnv("MONGO_HOST", "mongo")
