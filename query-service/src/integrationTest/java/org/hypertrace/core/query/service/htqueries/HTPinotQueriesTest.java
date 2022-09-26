@@ -207,8 +207,7 @@ public class HTPinotQueriesTest {
   private static boolean generateData() throws Exception {
     // start view-gen service
     GenericContainer<?> viewGen =
-        new GenericContainer(
-                DockerImageName.parse("triptitripathi49/rzp_hypertrace_ingester:test "))
+        new GenericContainer(DockerImageName.parse("triptitripathi49/rzp_view-generator:test"))
             .withNetwork(network)
             .dependsOn(kafkaZk)
             .withEnv("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
