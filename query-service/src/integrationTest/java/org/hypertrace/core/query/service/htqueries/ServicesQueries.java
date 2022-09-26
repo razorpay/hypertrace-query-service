@@ -16,8 +16,11 @@ import org.hypertrace.core.query.service.api.QueryRequest;
 import org.hypertrace.core.query.service.api.QueryRequest.Builder;
 import org.hypertrace.core.query.service.api.SortOrder;
 import org.hypertrace.core.query.service.api.ValueType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class ServicesQueries {
+  private static final Logger LOG = LoggerFactory.getLogger(ServicesQueries.class);
 
   /**
    * [ Select service_id, service_name, COUNT(*) FROM rawServiceView WHERE tenant_id = ? AND (
@@ -80,6 +83,11 @@ class ServicesQueries {
     Expression durationAvgRateFunction =
         createFunctionExpression(
             "AVGRATE", serviceDuration, createStringLiteralValueExpression("PT1S"));
+    LOG.info("serviceDuration is {}", serviceDuration);
+    LOG.info("durationSumFunction is {}", durationSumFunction);
+    LOG.info("durationAvgRateFunction is {}", durationAvgRateFunction);
+    LOG.info(
+        "createStringLiteralValueExpression is {}", createStringLiteralValueExpression("PT1S"));
 
     builder.addSelection(durationAvgRateFunction);
     builder.addSelection(durationSumFunction);
