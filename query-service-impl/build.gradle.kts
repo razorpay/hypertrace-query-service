@@ -9,7 +9,9 @@ tasks.test {
 }
 
 repositories {
-  maven("https://repo.repsy.io/mvn/user548/pinot-java-client-060-tls")
+  maven {
+    url = uri("https://repo.repsy.io/mvn/user548/pinot-java-client-060-tls")
+  }
 }
 
 dependencies {
