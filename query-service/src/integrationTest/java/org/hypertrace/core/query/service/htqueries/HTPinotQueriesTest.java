@@ -246,31 +246,20 @@ public class HTPinotQueriesTest {
             "span-event-view", 50L,
             "log-event-view", 0L);
     int retry = 0;
-    while (!areMessagesConsumed(endOffSetMap) && retry++ < 50) {
-      Thread.sleep(6000);
+    while (!areMessagesConsumed(endOffSetMap) && retry++ < 5) {
+      Thread.sleep(2000);
     }
     // stop this service
     viewGen.stop();
 
-    return retry < 50;
+    return retry < 5;
   }
 
   private static boolean areMessagesConsumed(Map<String, Long> endOffSetMap) throws Exception {
-    ListConsumerGroupsResult listConsumerGroups = adminClient.listConsumerGroups();
-    List<String> groupIds =
-        listConsumerGroups.all().get().stream()
-            .filter(consumerGroupListing -> consumerGroupListing.isSimpleConsumerGroup())
-            .map(consumerGroupListing -> consumerGroupListing.groupId())
-            .collect(Collectors.toUnmodifiableList());
-
-    Map<TopicPartition, OffsetAndMetadata> offsetAndMetadataMap = new HashMap<>();
-    for (String groupId : groupIds) {
-      ListConsumerGroupOffsetsResult listConsumerGroupOffsetsResult =
-          adminClient.listConsumerGroupOffsets(groupId);
-      Map<TopicPartition, OffsetAndMetadata> metadataMap =
-          listConsumerGroupOffsetsResult.partitionsToOffsetAndMetadata().get();
-      metadataMap.forEach((k, v) -> offsetAndMetadataMap.putIfAbsent(k, v));
-    }
+    ListConsumerGroupOffsetsResult consumerGroupOffsetsResult =
+            adminClient.listConsumerGroupOffsets("");
+    Map<TopicPartition, OffsetAndMetadata> offsetAndMetadataMap =
+            consumerGroupOffsetsResult.partitionsToOffsetAndMetadata().get();
 
     if (offsetAndMetadataMap.size() < 6) {
       return false;
