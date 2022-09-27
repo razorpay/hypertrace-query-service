@@ -13,13 +13,10 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.typesafe.config.ConfigFactory;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
-import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.avro.file.DataFileReader;
-import org.apache.avro.specific.SpecificDatumReader;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsResult;
 import org.apache.kafka.clients.admin.ListConsumerGroupsResult;
@@ -39,6 +36,7 @@ import org.hypertrace.core.query.service.api.ResultSetChunk;
 import org.hypertrace.core.query.service.api.Row;
 import org.hypertrace.core.query.service.client.QueryServiceClient;
 import org.hypertrace.core.query.service.client.QueryServiceConfig;
+import org.hypertrace.core.query.service.htqueries.utils.TestUtilities;
 import org.hypertrace.core.serviceframework.IntegrationTestServerUtil;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -225,20 +223,7 @@ public class HTPinotQueriesTest {
     viewGen.followOutput(logConsumer);
 
     // produce data
-    SpecificDatumReader<StructuredTrace> datumReader =
-        new SpecificDatumReader<>(StructuredTrace.getClassSchema());
-
-    DataFileReader<StructuredTrace> dfrStructuredTrace =
-        new DataFileReader<>(
-            new File(
-                Thread.currentThread()
-                    .getContextClassLoader()
-                    .getResource("StructuredTrace-Hotrod.avro")
-                    .getPath()),
-            datumReader);
-
-    StructuredTrace trace = dfrStructuredTrace.next();
-    dfrStructuredTrace.close();
+    StructuredTrace trace = TestUtilities.getSampleHotRodTrace();
 
     updateTraceTimeStamp(trace);
     KafkaProducer<String, StructuredTrace> producer =
