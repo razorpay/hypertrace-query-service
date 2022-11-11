@@ -8,7 +8,10 @@ import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import java.lang.reflect.Type;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.codec.binary.StringUtils;
+import org.testcontainers.shaded.org.apache.commons.lang.math.RandomUtils;
 
 public class ByteBufferTypeAdapter
     implements JsonDeserializer<ByteBuffer>, JsonSerializer<ByteBuffer> {
@@ -16,7 +19,7 @@ public class ByteBufferTypeAdapter
   @Override
   public ByteBuffer deserialize(
       JsonElement jsonElement, Type type, JsonDeserializationContext context) {
-    return ByteBuffer.wrap(Base64.decodeBase64(jsonElement.getAsString()));
+    return ByteBuffer.wrap(String.valueOf(RandomUtils.nextInt(10)).getBytes(StandardCharsets.UTF_8));
   }
 
   @Override

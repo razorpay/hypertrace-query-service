@@ -86,7 +86,7 @@ public class HTPinotQueriesTest {
     kafkaZk.start();
 
     pinotServiceManager =
-        new GenericContainer<>(DockerImageName.parse("triptitripathi49/rzp_pinot:test"))
+        new GenericContainer<>(DockerImageName.parse("hypertrace/pinot-servicemanager:test"))
             .withNetwork(network)
             .withNetworkAliases("pinot-controller", "pinot-server", "pinot-broker")
             .withExposedPorts(8099, 9000)
@@ -207,7 +207,7 @@ public class HTPinotQueriesTest {
     GenericContainer<?> viewGen =
         new GenericContainer(
                 DockerImageName.parse(
-                    "razorpay/hypertrace-ingester:change_duration_from_milli_to_micro"))
+                    "razorpay/hypertrace-ingester:hypertrace-ingester_null"))
             .withNetwork(network)
             .dependsOn(kafkaZk)
             .withEnv("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
