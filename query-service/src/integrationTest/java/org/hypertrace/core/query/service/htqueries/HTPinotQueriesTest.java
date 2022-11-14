@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,7 @@ import org.apache.avro.file.DataFileReader;
 import org.apache.avro.specific.SpecificDatumReader;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsResult;
+import org.apache.kafka.clients.admin.ListConsumerGroupsResult;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -44,6 +46,7 @@ import org.hypertrace.core.query.service.api.ResultSetChunk;
 import org.hypertrace.core.query.service.api.Row;
 import org.hypertrace.core.query.service.client.QueryServiceClient;
 import org.hypertrace.core.query.service.client.QueryServiceConfig;
+import org.hypertrace.core.query.service.htqueries.utils.TestUtilities;
 import org.hypertrace.core.serviceframework.IntegrationTestServerUtil;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -152,7 +155,11 @@ public class HTPinotQueriesTest {
         .and("ZK_CONNECT_STR", "localhost:" + pinotServiceManager.getMappedPort(8099).toString())
         .and("ATTRIBUTE_SERVICE_HOST_CONFIG", attributeService.getHost())
         .and("ATTRIBUTE_SERVICE_PORT_CONFIG", attributeService.getMappedPort(9012).toString())
-        .execute(() -> IntegrationTestServerUtil.startServices(new String[] {"query-service"}));
+        .execute(
+            () -> {
+              ConfigFactory.invalidateCaches();
+              IntegrationTestServerUtil.startServices(new String[] {"query-service"});
+            });
 
     Map<String, Object> map = Maps.newHashMap();
     map.put("host", "localhost");
@@ -164,6 +171,7 @@ public class HTPinotQueriesTest {
   @AfterAll
   public static void shutdown() {
     LOG.info("Initiating shutdown");
+    IntegrationTestServerUtil.shutdownServices();
     attributeService.stop();
     mongo.stop();
     pinotServiceManager.stop();
@@ -209,25 +217,37 @@ public class HTPinotQueriesTest {
   }
 
   private static boolean generateData() throws Exception {
+    // start view-gen service
+    GenericContainer<?> viewGen =
+        new GenericContainer(DockerImageName.parse("hypertrace/hypertrace-view-generator:test"))
+            .withNetwork(network)
+            .dependsOn(kafkaZk)
+            .withEnv("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
+            .withEnv(
+                "DEFAULT_KEY_SERDE", "org.hypertrace.core.kafkastreams.framework.serdes.AvroSerde")
+            .withEnv(
+                "DEFAULT_VALUE_SERDE",
+                "org.hypertrace.core.kafkastreams.framework.serdes.AvroSerde")
+            .withEnv("NUM_STREAM_THREADS", "1")
+            .withStartupAttempts(CONTAINER_STARTUP_ATTEMPTS)
+            .waitingFor(Wait.forLogMessage(".* Started admin service on port: 8099.*", 1));
+    viewGen.start();
+    viewGen.followOutput(logConsumer);
+
     // produce data
     SpecificDatumReader<StructuredTrace> datumReader =
         new SpecificDatumReader<>(StructuredTrace.getClassSchema());
 
-    List<String> paths = List.of("backend_entity_view_events", "raw_service_view_events", "raw_trace_view_events", "service_call_view_events", "span_event_view");
+    DataFileReader<StructuredTrace> dfrStructuredTrace =
+        new DataFileReader<>(
+            new File(
+                Thread.currentThread()
+                    .getContextClassLoader()
+                    .getResource("StructuredTrace-Hotrod.avro")
+                    .getPath()),
+            datumReader);
 
-    for (String path : paths) {
-      DataFileReader<StructuredTrace> dfrStructuredTrace =
-          new DataFileReader<>(
-              new File(
-                  Thread.currentThread()
-                      .getContextClassLoader()
-                      .getResource(path + "/" + )
-                      .getPath()),
-              datumReader);
-    }
-
-    StructuredTrace trace = dfrStructuredTrace.next();
-    dfrStructuredTrace.close();
+    StructuredTrace trace = TestUtilities.getSampleHotRodTrace();
 
     updateTraceTimeStamp(trace);
     KafkaProducer<String, StructuredTrace> producer =
@@ -249,19 +269,33 @@ public class HTPinotQueriesTest {
             "service-call-view-events", 27L,
             "span-event-view", 50L,
             "log-event-view", 0L);
-    int retry = 0;
-    while (!areMessagesConsumed(endOffSetMap) && retry++ < 20) {
-      Thread.sleep(2000);
+    int retry = 0, maxRetries = 50;
+    while (!areMessagesConsumed(endOffSetMap) && retry++ < maxRetries) {
+      Thread.sleep(6000); // max 5 min wait time
     }
     // stop this service
-    return retry < 20;
+    viewGen.stop();
+
+    return retry < maxRetries;
   }
 
   private static boolean areMessagesConsumed(Map<String, Long> endOffSetMap) throws Exception {
-    ListConsumerGroupOffsetsResult consumerGroupOffsetsResult =
-        adminClient.listConsumerGroupOffsets("");
-    Map<TopicPartition, OffsetAndMetadata> offsetAndMetadataMap =
-        consumerGroupOffsetsResult.partitionsToOffsetAndMetadata().get();
+    ListConsumerGroupsResult listConsumerGroups = adminClient.listConsumerGroups();
+    List<String> groupIds =
+        listConsumerGroups.all().get().stream()
+            .filter(consumerGroupListing -> consumerGroupListing.isSimpleConsumerGroup())
+            .map(consumerGroupListing -> consumerGroupListing.groupId())
+            .collect(Collectors.toUnmodifiableList());
+
+    Map<TopicPartition, OffsetAndMetadata> offsetAndMetadataMap = new HashMap<>();
+    for (String groupId : groupIds) {
+      ListConsumerGroupOffsetsResult listConsumerGroupOffsetsResult =
+          adminClient.listConsumerGroupOffsets(groupId);
+      Map<TopicPartition, OffsetAndMetadata> metadataMap =
+          listConsumerGroupOffsetsResult.partitionsToOffsetAndMetadata().get();
+      metadataMap.forEach((k, v) -> offsetAndMetadataMap.putIfAbsent(k, v));
+    }
+
     if (offsetAndMetadataMap.size() < 6) {
       return false;
     }
