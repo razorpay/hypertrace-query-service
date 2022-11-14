@@ -13,10 +13,20 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.typesafe.config.ConfigFactory;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.avro.file.DataFileReader;
+import org.apache.avro.specific.SpecificDatumReader;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsResult;
 import org.apache.kafka.clients.admin.ListConsumerGroupsResult;
@@ -36,7 +46,6 @@ import org.hypertrace.core.query.service.api.ResultSetChunk;
 import org.hypertrace.core.query.service.api.Row;
 import org.hypertrace.core.query.service.client.QueryServiceClient;
 import org.hypertrace.core.query.service.client.QueryServiceConfig;
-import org.hypertrace.core.query.service.htqueries.utils.TestUtilities;
 import org.hypertrace.core.serviceframework.IntegrationTestServerUtil;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -86,7 +95,7 @@ public class HTPinotQueriesTest {
     kafkaZk.start();
 
     pinotServiceManager =
-        new GenericContainer<>(DockerImageName.parse("hypertrace/pinot-servicemanager:test"))
+        new GenericContainer<>(DockerImageName.parse("hypertrace/pinot-servicemanager:main"))
             .withNetwork(network)
             .withNetworkAliases("pinot-controller", "pinot-server", "pinot-broker")
             .withExposedPorts(8099, 9000)
@@ -145,7 +154,11 @@ public class HTPinotQueriesTest {
         .and("ZK_CONNECT_STR", "localhost:" + pinotServiceManager.getMappedPort(8099).toString())
         .and("ATTRIBUTE_SERVICE_HOST_CONFIG", attributeService.getHost())
         .and("ATTRIBUTE_SERVICE_PORT_CONFIG", attributeService.getMappedPort(9012).toString())
-        .execute(() -> IntegrationTestServerUtil.startServices(new String[] {"query-service"}));
+        .execute(
+            () -> {
+              ConfigFactory.invalidateCaches();
+              IntegrationTestServerUtil.startServices(new String[] {"query-service"});
+            });
 
     Map<String, Object> map = Maps.newHashMap();
     map.put("host", "localhost");
@@ -157,6 +170,7 @@ public class HTPinotQueriesTest {
   @AfterAll
   public static void shutdown() {
     LOG.info("Initiating shutdown");
+    IntegrationTestServerUtil.shutdownServices();
     attributeService.stop();
     mongo.stop();
     pinotServiceManager.stop();
@@ -166,8 +180,7 @@ public class HTPinotQueriesTest {
 
   private static boolean bootstrapConfig() throws Exception {
     GenericContainer<?> bootstrapper =
-        new GenericContainer<>(
-                DockerImageName.parse("triptitripathi49/rzp_config_bootstrapper:test1"))
+        new GenericContainer<>(DockerImageName.parse("hypertrace/config-bootstrapper:main"))
             .withNetwork(network)
             .dependsOn(attributeService)
             .withEnv("MONGO_HOST", "mongo")
@@ -189,11 +202,11 @@ public class HTPinotQueriesTest {
     AttributeServiceClient client = new AttributeServiceClient(channel);
     int retry = 0;
     while (Streams.stream(
-                    client.findAttributes(
-                        TENANT_ID_MAP, AttributeMetadataFilter.getDefaultInstance()))
-                .collect(Collectors.toList())
-                .size()
-            == 0
+            client.findAttributes(
+                TENANT_ID_MAP, AttributeMetadataFilter.getDefaultInstance()))
+        .collect(Collectors.toList())
+        .size()
+        == 0
         && retry++ < 5) {
       Thread.sleep(2000);
     }
@@ -205,9 +218,7 @@ public class HTPinotQueriesTest {
   private static boolean generateData() throws Exception {
     // start view-gen service
     GenericContainer<?> viewGen =
-        new GenericContainer(
-                DockerImageName.parse(
-                    "razorpay/hypertrace-ingester:hypertrace-ingester_null"))
+        new GenericContainer(DockerImageName.parse("hypertrace/hypertrace-view-generator:main"))
             .withNetwork(network)
             .dependsOn(kafkaZk)
             .withEnv("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
@@ -223,7 +234,20 @@ public class HTPinotQueriesTest {
     viewGen.followOutput(logConsumer);
 
     // produce data
-    StructuredTrace trace = TestUtilities.getSampleHotRodTrace();
+    SpecificDatumReader<StructuredTrace> datumReader =
+        new SpecificDatumReader<>(StructuredTrace.getClassSchema());
+
+    DataFileReader<StructuredTrace> dfrStructuredTrace =
+        new DataFileReader<>(
+            new File(
+                Thread.currentThread()
+                    .getContextClassLoader()
+                    .getResource("StructuredTrace-Hotrod.avro")
+                    .getPath()),
+            datumReader);
+
+    StructuredTrace trace = dfrStructuredTrace.next();
+    dfrStructuredTrace.close();
 
     updateTraceTimeStamp(trace);
     KafkaProducer<String, StructuredTrace> producer =
@@ -245,14 +269,14 @@ public class HTPinotQueriesTest {
             "service-call-view-events", 27L,
             "span-event-view", 50L,
             "log-event-view", 0L);
-    int retry = 0;
-    while (!areMessagesConsumed(endOffSetMap) && retry++ < 50) {
-      Thread.sleep(6000);
+    int retry = 0, maxRetries = 50;
+    while (!areMessagesConsumed(endOffSetMap) && retry++ < maxRetries) {
+      Thread.sleep(6000); // max 5 min wait time
     }
     // stop this service
     viewGen.stop();
 
-    return retry < 52;
+    return retry < maxRetries;
   }
 
   private static boolean areMessagesConsumed(Map<String, Long> endOffSetMap) throws Exception {
@@ -312,8 +336,6 @@ public class HTPinotQueriesTest {
         row -> {
           double val1 = Double.parseDouble(row.getColumn(2).getString());
           double val2 = Double.parseDouble(row.getColumn(3).getString()) / divisor;
-          LOG.info("value 1 is &&&&&&&&&&& {}, {}", val1, row.getColumn(2).getString());
-          LOG.info("value 2 is &&&&&&&&&&&& {}, {}", val2, row.getColumn(3).getString());
           assertTrue(Math.abs(val1 - val2) < Math.pow(10, -3));
         });
   }
@@ -340,7 +362,6 @@ public class HTPinotQueriesTest {
         queryServiceClient.executeQuery(ServicesQueries.buildAvgRateQuery(), TENANT_ID_MAP, 10000);
     List<ResultSetChunk> list = Streams.stream(itr).collect(Collectors.toList());
     List<Row> rows = list.get(0).getRowList();
-    LOG.info("Row List is ***************************** {}", rows);
     assertEquals(4, rows.size());
     List<String> serviceNames =
         new ArrayList<>(Arrays.asList("frontend", "driver", "route", "customer"));
