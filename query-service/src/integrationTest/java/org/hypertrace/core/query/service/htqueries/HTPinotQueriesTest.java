@@ -5,7 +5,6 @@ import static org.hypertrace.core.query.service.QueryServiceTestUtils.buildQuery
 import static org.hypertrace.core.query.service.QueryServiceTestUtils.getAttributeExpressionQuery;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -48,7 +47,6 @@ import org.hypertrace.core.query.service.api.ResultSetChunk;
 import org.hypertrace.core.query.service.api.Row;
 import org.hypertrace.core.query.service.client.QueryServiceClient;
 import org.hypertrace.core.query.service.client.QueryServiceConfig;
-import org.hypertrace.core.query.service.htqueries.utils.TestUtilities;
 import org.hypertrace.core.serviceframework.IntegrationTestServerUtil;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -183,7 +181,8 @@ public class HTPinotQueriesTest {
 
   private static boolean bootstrapConfig() throws Exception {
     GenericContainer<?> bootstrapper =
-        new GenericContainer<>(DockerImageName.parse("triptitripathi49/rzp_config_bootstrapper:test1"))
+        new GenericContainer<>(
+                DockerImageName.parse("triptitripathi49/rzp_config_bootstrapper:test1"))
             .withNetwork(network)
             .dependsOn(attributeService)
             .withEnv("MONGO_HOST", "mongo")
@@ -205,11 +204,11 @@ public class HTPinotQueriesTest {
     AttributeServiceClient client = new AttributeServiceClient(channel);
     int retry = 0;
     while (Streams.stream(
-            client.findAttributes(
-                TENANT_ID_MAP, AttributeMetadataFilter.getDefaultInstance()))
-        .collect(Collectors.toList())
-        .size()
-        == 0
+                    client.findAttributes(
+                        TENANT_ID_MAP, AttributeMetadataFilter.getDefaultInstance()))
+                .collect(Collectors.toList())
+                .size()
+            == 0
         && retry++ < 5) {
       Thread.sleep(2000);
     }
@@ -221,7 +220,9 @@ public class HTPinotQueriesTest {
   private static boolean generateData() throws Exception {
     // start view-gen service
     GenericContainer<?> viewGen =
-        new GenericContainer(DockerImageName.parse("razorpay/hypertrace-ingester:hypertrace-view-generator_null"))
+        new GenericContainer(
+                DockerImageName.parse(
+                    "razorpay/hypertrace-ingester:hypertrace-view-generator_null"))
             .withNetwork(network)
             .dependsOn(kafkaZk)
             .withEnv("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
