@@ -15,12 +15,20 @@ import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.avro.file.DataFileReader;
 import org.apache.avro.specific.SpecificDatumReader;
 import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.ConsumerGroupListing;
 import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsResult;
 import org.apache.kafka.clients.admin.ListConsumerGroupsResult;
 import org.apache.kafka.clients.admin.NewTopic;
@@ -88,7 +96,7 @@ public class HTPinotQueriesTest {
     kafkaZk.start();
 
     pinotServiceManager =
-        new GenericContainer<>(DockerImageName.parse("hypertrace/pinot-servicemanager:main"))
+        new GenericContainer<>(DockerImageName.parse("triptitripathi49/rzp_pinot:test"))
             .withNetwork(network)
             .withNetworkAliases("pinot-controller", "pinot-server", "pinot-broker")
             .withExposedPorts(8099, 9000)
@@ -147,7 +155,11 @@ public class HTPinotQueriesTest {
         .and("ZK_CONNECT_STR", "localhost:" + pinotServiceManager.getMappedPort(8099).toString())
         .and("ATTRIBUTE_SERVICE_HOST_CONFIG", attributeService.getHost())
         .and("ATTRIBUTE_SERVICE_PORT_CONFIG", attributeService.getMappedPort(9012).toString())
-        .execute(() -> IntegrationTestServerUtil.startServices(new String[] {"query-service"}));
+        .execute(
+            () -> {
+              ConfigFactory.invalidateCaches();
+              IntegrationTestServerUtil.startServices(new String[] {"query-service"});
+            });
 
     Map<String, Object> map = Maps.newHashMap();
     map.put("host", "localhost");
@@ -159,6 +171,7 @@ public class HTPinotQueriesTest {
   @AfterAll
   public static void shutdown() {
     LOG.info("Initiating shutdown");
+    IntegrationTestServerUtil.shutdownServices();
     attributeService.stop();
     mongo.stop();
     pinotServiceManager.stop();
@@ -168,7 +181,8 @@ public class HTPinotQueriesTest {
 
   private static boolean bootstrapConfig() throws Exception {
     GenericContainer<?> bootstrapper =
-        new GenericContainer<>(DockerImageName.parse("hypertrace/config-bootstrapper:main"))
+        new GenericContainer<>(
+                DockerImageName.parse("triptitripathi49/rzp_config_bootstrapper:test1"))
             .withNetwork(network)
             .dependsOn(attributeService)
             .withEnv("MONGO_HOST", "mongo")
@@ -206,7 +220,9 @@ public class HTPinotQueriesTest {
   private static boolean generateData() throws Exception {
     // start view-gen service
     GenericContainer<?> viewGen =
-        new GenericContainer(DockerImageName.parse("hypertrace/hypertrace-view-generator:main"))
+        new GenericContainer(
+                DockerImageName.parse(
+                    "razorpay/hypertrace-ingester:hypertrace-view-generator_9c0318511af10e9061708aa916023448ccc5a91f"))
             .withNetwork(network)
             .dependsOn(kafkaZk)
             .withEnv("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
@@ -257,22 +273,22 @@ public class HTPinotQueriesTest {
             "service-call-view-events", 27L,
             "span-event-view", 50L,
             "log-event-view", 0L);
-    int retry = 0;
-    while (!areMessagesConsumed(endOffSetMap) && retry++ < 50) {
-      Thread.sleep(6000);
+    int retry = 0, maxRetries = 50;
+    while (!areMessagesConsumed(endOffSetMap) && retry++ < maxRetries) {
+      Thread.sleep(6000); // max 5 min wait time
     }
     // stop this service
     viewGen.stop();
 
-    return retry < 50;
+    return retry < maxRetries;
   }
 
   private static boolean areMessagesConsumed(Map<String, Long> endOffSetMap) throws Exception {
     ListConsumerGroupsResult listConsumerGroups = adminClient.listConsumerGroups();
     List<String> groupIds =
         listConsumerGroups.all().get().stream()
-            .filter(consumerGroupListing -> consumerGroupListing.isSimpleConsumerGroup())
-            .map(consumerGroupListing -> consumerGroupListing.groupId())
+            .filter(ConsumerGroupListing::isSimpleConsumerGroup)
+            .map(ConsumerGroupListing::groupId)
             .collect(Collectors.toUnmodifiableList());
 
     Map<TopicPartition, OffsetAndMetadata> offsetAndMetadataMap = new HashMap<>();
@@ -281,14 +297,10 @@ public class HTPinotQueriesTest {
           adminClient.listConsumerGroupOffsets(groupId);
       Map<TopicPartition, OffsetAndMetadata> metadataMap =
           listConsumerGroupOffsetsResult.partitionsToOffsetAndMetadata().get();
-      metadataMap.forEach((k, v) -> offsetAndMetadataMap.putIfAbsent(k, v));
+      metadataMap.forEach(offsetAndMetadataMap::putIfAbsent);
     }
 
-    if (offsetAndMetadataMap.size() < 6) {
-      return false;
-    }
-    return offsetAndMetadataMap.entrySet().stream()
-        .noneMatch(k -> k.getValue().offset() < endOffSetMap.get(k.getKey().topic()));
+    return offsetAndMetadataMap.size() == endOffSetMap.size();
   }
 
   private static void updateTraceTimeStamp(StructuredTrace trace) {

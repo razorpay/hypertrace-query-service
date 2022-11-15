@@ -16,13 +16,16 @@ import org.hypertrace.core.query.service.api.QueryRequest;
 import org.hypertrace.core.query.service.api.QueryRequest.Builder;
 import org.hypertrace.core.query.service.api.SortOrder;
 import org.hypertrace.core.query.service.api.ValueType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class ServicesQueries {
+  private static final Logger LOG = LoggerFactory.getLogger(ServicesQueries.class);
 
   /**
    * [ Select service_id, service_name, COUNT(*) FROM rawServiceView WHERE tenant_id = ? AND (
    * service_id != ? AND start_time_millis >= ? AND start_time_millis < ? ) GROUP BY service_id,
-   * service_name ORDER BY PERCENTILETDIGEST99(duration_millis) desc limit
+   * service_name ORDER BY PERCENTILETDIGEST99(duration_micros) desc limit
    * 10000=Params{integerParams={}, longParams={2=1612271838043, 3=1614691038043},
    * stringParams={0=__default, 1=null}, floatParams={}, doubleParams={}, byteStringParams={}} ]
    */
@@ -80,6 +83,11 @@ class ServicesQueries {
     Expression durationAvgRateFunction =
         createFunctionExpression(
             "AVGRATE", serviceDuration, createStringLiteralValueExpression("PT1S"));
+    LOG.info("serviceDuration is {}", serviceDuration);
+    LOG.info("durationSumFunction is {}", durationSumFunction);
+    LOG.info("durationAvgRateFunction is {}", durationAvgRateFunction);
+    LOG.info(
+        "createStringLiteralValueExpression is {}", createStringLiteralValueExpression("PT1S"));
 
     builder.addSelection(durationAvgRateFunction);
     builder.addSelection(durationSumFunction);

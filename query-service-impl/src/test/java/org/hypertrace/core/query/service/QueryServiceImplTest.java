@@ -289,7 +289,7 @@ public class QueryServiceImplTest {
     builder.addSelection(createSelection("EVENT.attributes.response_headers"));
 
     builder.addSelection(createSelection("EVENT.start_time_millis"));
-    builder.addSelection(createSelection("EVENT.metrics.duration_millis"));
+    builder.addSelection(createSelection("EVENT.metrics.duration_micros"));
     builder.addSelection(createSelection("Service.name"));
     builder.addSelection(createSelection("EVENT.attributes.response_body"));
     builder.addSelection(createSelection("EVENT.attributes.parent_span_id"));

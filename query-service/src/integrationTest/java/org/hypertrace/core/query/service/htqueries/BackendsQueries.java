@@ -20,7 +20,7 @@ class BackendsQueries {
    * [ Select backend_id, backend_name, backend_protocol, COUNT(*) FROM backendEntityView WHERE
    * tenant_id = ? AND ( backend_id != ? AND start_time_millis >= ? AND start_time_millis < ? )
    * GROUP BY backend_id, backend_name, backend_protocol ORDER BY
-   * PERCENTILETDIGEST99(duration_millis) desc limit 10000=Params{integerParams={},
+   * PERCENTILETDIGEST99(duration_micros) desc limit 10000=Params{integerParams={},
    * longParams={2=1612270796194, 3=1614689996194}, stringParams={0=__default, 1=null},
    * floatParams={}, doubleParams={}, byteStringParams={}} ]
    */

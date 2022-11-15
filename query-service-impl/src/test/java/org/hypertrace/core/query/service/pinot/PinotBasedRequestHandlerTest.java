@@ -120,7 +120,7 @@ public class PinotBasedRequestHandlerTest {
                 .setDistinctSelections(true)
                 .addSelection(QueryRequestBuilderUtils.createColumnExpression("Trace.id"))
                 .addSelection(
-                    QueryRequestBuilderUtils.createColumnExpression("Trace.duration_millis"))
+                    QueryRequestBuilderUtils.createColumnExpression("Trace.duration_micros"))
                 .setFilter(
                     QueryRequestBuilderUtils.createFilter(
                         "Trace.end_time_millis",
@@ -390,7 +390,7 @@ public class PinotBasedRequestHandlerTest {
                             .build()))
                 .addChildFilter(
                     QueryRequestBuilderUtils.createFilter(
-                        "EVENT.duration_millis",
+                        "EVENT.duration_micros",
                         Operator.GT,
                         QueryRequestBuilderUtils.createLongLiteralValueExpression(10L)))
                 .build();
@@ -1174,7 +1174,7 @@ public class PinotBasedRequestHandlerTest {
           QueryRequest.newBuilder()
               .addSelection(QueryRequestBuilderUtils.createColumnExpression("Trace.id"))
               .addSelection(
-                  QueryRequestBuilderUtils.createColumnExpression("Trace.duration_millis"))
+                  QueryRequestBuilderUtils.createColumnExpression("Trace.duration_micros"))
               .setFilter(
                   QueryRequestBuilderUtils.createFilter(
                       "Trace.start_time_millis",
@@ -1209,7 +1209,7 @@ public class PinotBasedRequestHandlerTest {
           QueryRequest.newBuilder()
               .addSelection(QueryRequestBuilderUtils.createColumnExpression("Trace.id"))
               .addSelection(
-                  QueryRequestBuilderUtils.createColumnExpression("Trace.duration_millis"))
+                  QueryRequestBuilderUtils.createColumnExpression("Trace.duration_micros"))
               .setFilter(
                   QueryRequestBuilderUtils.createFilter(
                       "Trace.start_time_millis",
@@ -1523,7 +1523,7 @@ public class PinotBasedRequestHandlerTest {
             {"trace-id-3", "78"},
             {"trace-id-4", "77"}
           };
-      List<String> columnNames = List.of("trace_id", "duration_millis");
+      List<String> columnNames = List.of("trace_id", "duration_micros");
       ResultSet resultSet = mockResultSet(4, 2, columnNames, resultTable);
       ResultSetGroup resultSetGroup = mockResultSetGroup(List.of(resultSet));
       when(pinotClient.executeQuery(any(), any())).thenReturn(resultSetGroup);
@@ -1549,7 +1549,7 @@ public class PinotBasedRequestHandlerTest {
           QueryRequest.newBuilder()
               .addSelection(QueryRequestBuilderUtils.createColumnExpression("Trace.id"))
               .addSelection(
-                  QueryRequestBuilderUtils.createColumnExpression("Trace.duration_millis"))
+                  QueryRequestBuilderUtils.createColumnExpression("Trace.duration_micros"))
               .build();
       ExecutionContext context = new ExecutionContext("__default", request);
       Observable<Row> rows = handler.handleRequest(request, context);

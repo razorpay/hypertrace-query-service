@@ -226,7 +226,7 @@ public class QueryRequestToPinotSQLConverterTest {
   @Test
   public void testQueryWithDoubleFilter() {
     QueryRequest queryRequest =
-        buildSimpleQueryWithFilter(createEqualsFilter("Span.metrics.duration_millis", 1.2));
+        buildSimpleQueryWithFilter(createEqualsFilter("Span.metrics.duration_micros", 1.2));
     ViewDefinition viewDefinition = getDefaultViewDefinition();
     defaultMockingForExecutionContext();
 
@@ -237,7 +237,7 @@ public class QueryRequestToPinotSQLConverterTest {
             + " = '"
             + TENANT_ID
             + "' "
-            + "AND duration_millis = 1.2",
+            + "AND duration_micros = 1.2",
         viewDefinition,
         executionContext);
   }
@@ -245,7 +245,7 @@ public class QueryRequestToPinotSQLConverterTest {
   @Test
   public void testQueryWithFloatFilter() {
     QueryRequest queryRequest =
-        buildSimpleQueryWithFilter(createEqualsFilter("Span.metrics.duration_millis", 1.2f));
+        buildSimpleQueryWithFilter(createEqualsFilter("Span.metrics.duration_micros", 1.2f));
     ViewDefinition viewDefinition = getDefaultViewDefinition();
     defaultMockingForExecutionContext();
 
@@ -256,7 +256,7 @@ public class QueryRequestToPinotSQLConverterTest {
             + " = '"
             + TENANT_ID
             + "' "
-            + "AND duration_millis = 1.2",
+            + "AND duration_micros = 1.2",
         viewDefinition,
         executionContext);
   }
@@ -264,7 +264,7 @@ public class QueryRequestToPinotSQLConverterTest {
   @Test
   public void testQueryWithIntFilter() {
     QueryRequest queryRequest =
-        buildSimpleQueryWithFilter(createEqualsFilter("Span.metrics.duration_millis", 1));
+        buildSimpleQueryWithFilter(createEqualsFilter("Span.metrics.duration_micros", 1));
     ViewDefinition viewDefinition = getDefaultViewDefinition();
     defaultMockingForExecutionContext();
 
@@ -275,7 +275,7 @@ public class QueryRequestToPinotSQLConverterTest {
             + " = '"
             + TENANT_ID
             + "' "
-            + "AND duration_millis = 1",
+            + "AND duration_micros = 1",
         viewDefinition,
         executionContext);
   }
@@ -346,7 +346,7 @@ public class QueryRequestToPinotSQLConverterTest {
 
     assertPQLQuery(
         builder.build(),
-        "select service_name, span_name, count(*), avg(duration_millis) from SpanEventView"
+        "select service_name, span_name, count(*), avg(duration_micros) from SpanEventView"
             + " where "
             + viewDefinition.getTenantIdColumn()
             + " = '"
@@ -368,14 +368,14 @@ public class QueryRequestToPinotSQLConverterTest {
 
     assertPQLQuery(
         builder.build(),
-        "select service_name, span_name, count(*), avg(duration_millis) from SpanEventView"
+        "select service_name, span_name, count(*), avg(duration_micros) from SpanEventView"
             + " where "
             + viewDefinition.getTenantIdColumn()
             + " = '"
             + TENANT_ID
             + "' "
             + "and ( start_time_millis > 1570658506605 and end_time_millis < 1570744906673 )"
-            + " group by service_name, span_name order by service_name, avg(duration_millis) desc , count(*) desc  limit 20",
+            + " group by service_name, span_name order by service_name, avg(duration_micros) desc , count(*) desc  limit 20",
         viewDefinition,
         executionContext);
   }
@@ -704,7 +704,7 @@ public class QueryRequestToPinotSQLConverterTest {
   @Test
   public void testQueryWithBytesColumnInFilter() {
     Builder builder = QueryRequest.newBuilder();
-    builder.addSelection(createColumnExpression("Span.metrics.duration_millis"));
+    builder.addSelection(createColumnExpression("Span.metrics.duration_micros"));
 
     // Though span id is bytes in Pinot, top layers send the value as hex string.
     builder.setFilter(createInFilter("Span.id", List.of("042e5523ff6b2506")));
@@ -714,7 +714,7 @@ public class QueryRequestToPinotSQLConverterTest {
 
     assertPQLQuery(
         builder.build(),
-        "SELECT duration_millis FROM SpanEventView "
+        "SELECT duration_micros FROM SpanEventView "
             + "WHERE "
             + viewDefinition.getTenantIdColumn()
             + " = '"
@@ -758,7 +758,7 @@ public class QueryRequestToPinotSQLConverterTest {
     Builder builder = QueryRequest.newBuilder();
     builder.addSelection(createColumnExpression("Span.id"));
 
-    Expression durationColumn = createColumnExpression("Span.metrics.duration_millis").build();
+    Expression durationColumn = createColumnExpression("Span.metrics.duration_micros").build();
     Filter andFilter =
         Filter.newBuilder()
             .setOperator(Operator.GE)
@@ -780,7 +780,7 @@ public class QueryRequestToPinotSQLConverterTest {
             + " = '"
             + TENANT_ID
             + "' "
-            + "AND duration_millis >= 1000 limit 5",
+            + "AND duration_micros >= 1000 limit 5",
         viewDefinition,
         executionContext);
   }
@@ -790,7 +790,7 @@ public class QueryRequestToPinotSQLConverterTest {
     Builder builder = QueryRequest.newBuilder();
     builder.addSelection(createColumnExpression("Span.id"));
 
-    Expression durationColumn = createColumnExpression("Span.metrics.duration_millis").build();
+    Expression durationColumn = createColumnExpression("Span.metrics.duration_micros").build();
     Filter likeFilter =
         Filter.newBuilder()
             .setOperator(Operator.LIKE)
@@ -810,7 +810,7 @@ public class QueryRequestToPinotSQLConverterTest {
             + " = '"
             + TENANT_ID
             + "' "
-            + "AND REGEXP_LIKE(duration_millis,5000)",
+            + "AND REGEXP_LIKE(duration_micros,5000)",
         viewDefinition,
         executionContext);
   }
@@ -822,7 +822,7 @@ public class QueryRequestToPinotSQLConverterTest {
     Filter endTimeFilter = createTimeFilter("Span.end_time_millis", Operator.LT, 1570744906673L);
     Expression percentileAgg =
         createAliasedFunctionExpression(
-                "PERCENTILE99", "Span.metrics.duration_millis", "P99_duration")
+                "PERCENTILE99", "Span.metrics.duration_micros", "P99_duration")
             .build();
 
     QueryRequest queryRequest =
@@ -842,7 +842,7 @@ public class QueryRequestToPinotSQLConverterTest {
 
     assertPQLQuery(
         queryRequest,
-        "select PERCENTILETDIGEST99(duration_millis) from SpanEventView"
+        "select PERCENTILETDIGEST99(duration_micros) from SpanEventView"
             + " where "
             + viewDefinition.getTenantIdColumn()
             + " = '"
@@ -872,7 +872,7 @@ public class QueryRequestToPinotSQLConverterTest {
                 Function.newBuilder()
                     .setFunctionName(QueryFunctionConstants.QUERY_FUNCTION_CONDITIONAL)
                     .addArguments(createStringLiteralValueExpression("true"))
-                    .addArguments(createColumnExpression("Span.metrics.duration_millis"))
+                    .addArguments(createColumnExpression("Span.metrics.duration_micros"))
                     .addArguments(createNullNumberLiteralValueExpression()))
             .build();
 
@@ -888,7 +888,7 @@ public class QueryRequestToPinotSQLConverterTest {
 
     assertPQLQuery(
         queryRequest,
-        "select conditional('true',span_id,'null'), conditional('true',duration_millis,0)"
+        "select conditional('true',span_id,'null'), conditional('true',duration_micros,0)"
             + " from SpanEventView"
             + " where "
             + viewDefinition.getTenantIdColumn()
@@ -982,7 +982,7 @@ public class QueryRequestToPinotSQLConverterTest {
     Builder builder = QueryRequest.newBuilder();
     builder.addAggregation(createCountByColumnSelection("Span.id"));
     Expression avg =
-        createFunctionExpression("AVG", createColumnExpression("Span.duration_millis").build());
+        createFunctionExpression("AVG", createColumnExpression("Span.duration_micros").build());
     builder.addAggregation(avg);
 
     Filter startTimeFilter =
@@ -1006,7 +1006,7 @@ public class QueryRequestToPinotSQLConverterTest {
     Builder builder = QueryRequest.newBuilder();
     builder.addAggregation(createCountByColumnSelection("Span.id"));
     Expression avg =
-        createFunctionExpression("AVG", createColumnExpression("Span.duration_millis").build());
+        createFunctionExpression("AVG", createColumnExpression("Span.duration_micros").build());
     builder.addAggregation(avg);
 
     Filter startTimeFilter =
@@ -1028,7 +1028,7 @@ public class QueryRequestToPinotSQLConverterTest {
         createOrderByExpression(createColumnExpression("Span.serviceName"), SortOrder.ASC));
     builder.addOrderBy(
         createOrderByExpression(
-            createAliasedFunctionExpression("AVG", "Span.duration_millis", "avg_duration_millis"),
+            createAliasedFunctionExpression("AVG", "Span.duration_micros", "avg_duration_micros"),
             SortOrder.DESC));
     builder.addOrderBy(
         createOrderByExpression(
