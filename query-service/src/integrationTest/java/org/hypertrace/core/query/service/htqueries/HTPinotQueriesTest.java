@@ -221,7 +221,7 @@ public class HTPinotQueriesTest {
   private static boolean generateData() throws Exception {
     // start view-gen service
     GenericContainer<?> viewGen =
-        new GenericContainer(DockerImageName.parse("hypertrace/hypertrace-view-generator:test"))
+        new GenericContainer(DockerImageName.parse("razorpay/hypertrace-ingester:hypertrace-view-generator_null"))
             .withNetwork(network)
             .dependsOn(kafkaZk)
             .withEnv("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
