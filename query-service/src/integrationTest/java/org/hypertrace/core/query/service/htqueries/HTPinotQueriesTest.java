@@ -5,6 +5,7 @@ import static org.hypertrace.core.query.service.QueryServiceTestUtils.buildQuery
 import static org.hypertrace.core.query.service.QueryServiceTestUtils.getAttributeExpressionQuery;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -28,6 +29,7 @@ import java.util.stream.Stream;
 import org.apache.avro.file.DataFileReader;
 import org.apache.avro.specific.SpecificDatumReader;
 import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.ConsumerGroupListing;
 import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsResult;
 import org.apache.kafka.clients.admin.ListConsumerGroupsResult;
 import org.apache.kafka.clients.admin.NewTopic;
@@ -284,8 +286,8 @@ public class HTPinotQueriesTest {
     ListConsumerGroupsResult listConsumerGroups = adminClient.listConsumerGroups();
     List<String> groupIds =
         listConsumerGroups.all().get().stream()
-            .filter(consumerGroupListing -> consumerGroupListing.isSimpleConsumerGroup())
-            .map(consumerGroupListing -> consumerGroupListing.groupId())
+            .filter(ConsumerGroupListing::isSimpleConsumerGroup)
+            .map(ConsumerGroupListing::groupId)
             .collect(Collectors.toUnmodifiableList());
 
     Map<TopicPartition, OffsetAndMetadata> offsetAndMetadataMap = new HashMap<>();
@@ -294,10 +296,10 @@ public class HTPinotQueriesTest {
           adminClient.listConsumerGroupOffsets(groupId);
       Map<TopicPartition, OffsetAndMetadata> metadataMap =
           listConsumerGroupOffsetsResult.partitionsToOffsetAndMetadata().get();
-      metadataMap.forEach((k, v) -> offsetAndMetadataMap.putIfAbsent(k, v));
+      metadataMap.forEach(offsetAndMetadataMap::putIfAbsent);
     }
 
-    return offsetAndMetadataMap.size() > 0;
+    return offsetAndMetadataMap.size() == endOffSetMap.size();
   }
 
   private static void updateTraceTimeStamp(StructuredTrace trace) {
