@@ -275,7 +275,7 @@ public class HTPinotQueriesTest {
       Thread.sleep(6000); // max 5 min wait time
     }
     // stop this service
-//    viewGen.stop();
+    viewGen.stop();
 
     return retry < maxRetries;
   }
