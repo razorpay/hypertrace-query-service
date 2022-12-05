@@ -88,7 +88,8 @@ public class HTPinotQueriesTest {
     kafkaZk.start();
 
     pinotServiceManager =
-        new GenericContainer<>(DockerImageName.parse("harnoor7/hypertrace-dqs:pinot_image_time_filter_changes"))
+        new GenericContainer<>(
+                DockerImageName.parse("harnoor7/hypertrace-dqs:pinot_image_time_filter_changes"))
             .withNetwork(network)
             .withNetworkAliases("pinot-controller", "pinot-server", "pinot-broker")
             .withExposedPorts(8099, 9000)
@@ -147,10 +148,11 @@ public class HTPinotQueriesTest {
         .and("ZK_CONNECT_STR", "localhost:" + pinotServiceManager.getMappedPort(8099).toString())
         .and("ATTRIBUTE_SERVICE_HOST_CONFIG", attributeService.getHost())
         .and("ATTRIBUTE_SERVICE_PORT_CONFIG", attributeService.getMappedPort(9012).toString())
-        .execute(() -> {
-          ConfigFactory.invalidateCaches();
-          IntegrationTestServerUtil.startServices(new String[] {"query-service"});
-        });
+        .execute(
+            () -> {
+              ConfigFactory.invalidateCaches();
+              IntegrationTestServerUtil.startServices(new String[] {"query-service"});
+            });
 
     Map<String, Object> map = Maps.newHashMap();
     map.put("host", "localhost");
@@ -171,7 +173,9 @@ public class HTPinotQueriesTest {
 
   private static boolean bootstrapConfig() throws Exception {
     GenericContainer<?> bootstrapper =
-        new GenericContainer<>(DockerImageName.parse("razorpay/hypertrace-service:config-bootstrapper_4ef76277d87295c3a751e04ff665e0932d0d7579"))
+        new GenericContainer<>(
+                DockerImageName.parse(
+                    "razorpay/hypertrace-service:config-bootstrapper_4ef76277d87295c3a751e04ff665e0932d0d7579"))
             .withNetwork(network)
             .dependsOn(attributeService)
             .withEnv("MONGO_HOST", "mongo")
