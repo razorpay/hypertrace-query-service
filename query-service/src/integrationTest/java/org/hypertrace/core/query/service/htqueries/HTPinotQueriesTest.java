@@ -88,7 +88,7 @@ public class HTPinotQueriesTest {
     kafkaZk.start();
 
     pinotServiceManager =
-        new GenericContainer<>(DockerImageName.parse("hypertrace/pinot-servicemanager:main"))
+        new GenericContainer<>(DockerImageName.parse("harnoor7/hypertrace-dqs:pinot_image_time_filter_changes"))
             .withNetwork(network)
             .withNetworkAliases("pinot-controller", "pinot-server", "pinot-broker")
             .withExposedPorts(8099, 9000)
@@ -168,7 +168,7 @@ public class HTPinotQueriesTest {
 
   private static boolean bootstrapConfig() throws Exception {
     GenericContainer<?> bootstrapper =
-        new GenericContainer<>(DockerImageName.parse("hypertrace/config-bootstrapper:main"))
+        new GenericContainer<>(DockerImageName.parse("razorpay/hypertrace-service:config-bootstrapper_4ef76277d87295c3a751e04ff665e0932d0d7579"))
             .withNetwork(network)
             .dependsOn(attributeService)
             .withEnv("MONGO_HOST", "mongo")
