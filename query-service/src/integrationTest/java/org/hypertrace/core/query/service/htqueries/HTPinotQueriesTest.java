@@ -89,7 +89,7 @@ public class HTPinotQueriesTest {
 
     pinotServiceManager =
         new GenericContainer<>(
-                DockerImageName.parse("harnoor7/hypertrace-dqs:pinot_image_time_filter_changes"))
+                DockerImageName.parse("harnoor7/hypertrace-dqs:pinot_image_time_filter_changes_1"))
             .withNetwork(network)
             .withNetworkAliases("pinot-controller", "pinot-server", "pinot-broker")
             .withExposedPorts(8099, 9000)
