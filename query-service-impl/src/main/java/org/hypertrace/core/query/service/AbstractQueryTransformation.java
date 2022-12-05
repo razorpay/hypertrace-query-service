@@ -113,6 +113,7 @@ public abstract class AbstractQueryTransformation implements QueryTransformation
     if (filter.equals(Filter.getDefaultInstance())) {
       return Single.just(filter);
     }
+
     Single<Expression> lhsSingle = this.transformExpression(filter.getLhs());
     Single<Expression> rhsSingle = this.transformExpression(filter.getRhs());
     Single<List<Filter>> childFilterListSingle =
