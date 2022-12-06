@@ -174,7 +174,7 @@ public class HTPinotQueriesTest {
     GenericContainer<?> bootstrapper =
         new GenericContainer<>(
                 DockerImageName.parse(
-                    "razorpay/hypertrace-service:config-bootstrapper_4ef76277d87295c3a751e04ff665e0932d0d7579"))
+                    "razorpay/hypertrace-service:config-bootstrapper_aaa9f0d51047fc9f5dbd104826a1f6bb880a2e56"))
             .withNetwork(network)
             .dependsOn(attributeService)
             .withEnv("MONGO_HOST", "mongo")
