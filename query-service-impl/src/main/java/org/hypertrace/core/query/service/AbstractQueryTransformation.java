@@ -118,12 +118,12 @@ public abstract class AbstractQueryTransformation implements QueryTransformation
       String lhsAttributeId = lhsExpression.getAttributeExpression().getAttributeId();
       if (lhsAttributeId.equals("API.startTime") || lhsAttributeId.equals("SERVICE.startTime")) {
         lhsExpression =
-                Expression.newBuilder()
-                        .setAttributeExpression(
-                                AttributeExpression.newBuilder()
-                                        .setAttributeId(lhsAttributeId.concat("Filter"))
-                                        .build())
-                        .build();
+            Expression.newBuilder()
+                .setAttributeExpression(
+                    AttributeExpression.newBuilder()
+                        .setAttributeId(lhsAttributeId.concat("Filter"))
+                        .build())
+                .build();
       }
     }
 
