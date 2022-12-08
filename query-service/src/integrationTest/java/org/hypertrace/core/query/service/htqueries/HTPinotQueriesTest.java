@@ -15,14 +15,7 @@ import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.avro.file.DataFileReader;
@@ -155,11 +148,7 @@ public class HTPinotQueriesTest {
         .and("ZK_CONNECT_STR", "localhost:" + pinotServiceManager.getMappedPort(8099).toString())
         .and("ATTRIBUTE_SERVICE_HOST_CONFIG", attributeService.getHost())
         .and("ATTRIBUTE_SERVICE_PORT_CONFIG", attributeService.getMappedPort(9012).toString())
-        .execute(
-            () -> {
-              ConfigFactory.invalidateCaches();
-              IntegrationTestServerUtil.startServices(new String[] {"query-service"});
-            });
+        .execute(() -> IntegrationTestServerUtil.startServices(new String[] {"query-service"}));
 
     Map<String, Object> map = Maps.newHashMap();
     map.put("host", "localhost");
@@ -171,7 +160,6 @@ public class HTPinotQueriesTest {
   @AfterAll
   public static void shutdown() {
     LOG.info("Initiating shutdown");
-    IntegrationTestServerUtil.shutdownServices();
     attributeService.stop();
     mongo.stop();
     pinotServiceManager.stop();
@@ -272,14 +260,14 @@ public class HTPinotQueriesTest {
             "service-call-view-events", 27L,
             "span-event-view", 50L,
             "log-event-view", 0L);
-    int retry = 0, maxRetries = 50;
-    while (!areMessagesConsumed(endOffSetMap) && retry++ < maxRetries) {
-      Thread.sleep(6000); // max 5 min wait time
+    int retry = 0;
+    while (!areMessagesConsumed(endOffSetMap) && retry++ < 50) {
+      Thread.sleep(6000);
     }
     // stop this service
     viewGen.stop();
 
-    return retry < maxRetries;
+    return retry < 50;
   }
 
   private static boolean areMessagesConsumed(Map<String, Long> endOffSetMap) throws Exception {
