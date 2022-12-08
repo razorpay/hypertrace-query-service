@@ -1,7 +1,6 @@
 name: build and validate
 on:
   push:
-  pull_request_target:
 
 jobs:
   build:
