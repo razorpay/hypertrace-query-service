@@ -114,18 +114,18 @@ public abstract class AbstractQueryTransformation implements QueryTransformation
       return Single.just(filter);
     }
     Expression lhsExpression = filter.getLhs();
-    if (lhsExpression.getValueCase() == Expression.ValueCase.ATTRIBUTE_EXPRESSION) {
-      String lhsAttributeId = lhsExpression.getAttributeExpression().getAttributeId();
-      if (lhsAttributeId.equals("API.startTime") || lhsAttributeId.equals("SERVICE.startTime")) {
-        lhsExpression =
-            Expression.newBuilder()
-                .setAttributeExpression(
-                    AttributeExpression.newBuilder()
-                        .setAttributeId(lhsAttributeId.concat("Filter"))
-                        .build())
-                .build();
-      }
-    }
+//    if (lhsExpression.getValueCase() == Expression.ValueCase.ATTRIBUTE_EXPRESSION) {
+//      String lhsAttributeId = lhsExpression.getAttributeExpression().getAttributeId();
+//      if (lhsAttributeId.equals("API.startTime") || lhsAttributeId.equals("SERVICE.startTime")) {
+//        lhsExpression =
+//            Expression.newBuilder()
+//                .setAttributeExpression(
+//                    AttributeExpression.newBuilder()
+//                        .setAttributeId(lhsAttributeId.concat("Filter"))
+//                        .build())
+//                .build();
+//      }
+//    }
 
     Single<Expression> lhsSingle = this.transformExpression(lhsExpression);
     Single<Expression> rhsSingle = this.transformExpression(filter.getRhs());
