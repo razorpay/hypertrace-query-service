@@ -257,14 +257,14 @@ public class HTPinotQueriesTest {
             "service-call-view-events", 27L,
             "span-event-view", 50L,
             "log-event-view", 0L);
-    int retry = 0;
-    while (!areMessagesConsumed(endOffSetMap) && retry++ < 50) {
-      Thread.sleep(6000);
+    int retry = 0, maxRetries = 50;
+    while (!areMessagesConsumed(endOffSetMap) && retry++ < maxRetries) {
+      Thread.sleep(6000); // max 5 min wait time
     }
     // stop this service
     viewGen.stop();
 
-    return retry < 50;
+    return retry < maxRetries;
   }
 
   private static boolean areMessagesConsumed(Map<String, Long> endOffSetMap) throws Exception {
