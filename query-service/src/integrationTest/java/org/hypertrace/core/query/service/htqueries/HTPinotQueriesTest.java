@@ -15,14 +15,19 @@ import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.avro.file.DataFileReader;
 import org.apache.avro.specific.SpecificDatumReader;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsResult;
-import org.apache.kafka.clients.admin.ListConsumerGroupsResult;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -260,33 +265,21 @@ public class HTPinotQueriesTest {
             "service-call-view-events", 27L,
             "span-event-view", 50L,
             "log-event-view", 0L);
-    int retry = 0, maxRetries = 50;
-    while (!areMessagesConsumed(endOffSetMap) && retry++ < maxRetries) {
-      Thread.sleep(6000); // max 5 min wait time
+    int retry = 0;
+    while (!areMessagesConsumed(endOffSetMap) && retry++ < 5) {
+      Thread.sleep(2000);
     }
     // stop this service
     viewGen.stop();
 
-    return retry < maxRetries;
+    return retry < 5;
   }
 
   private static boolean areMessagesConsumed(Map<String, Long> endOffSetMap) throws Exception {
-    ListConsumerGroupsResult listConsumerGroups = adminClient.listConsumerGroups();
-    List<String> groupIds =
-        listConsumerGroups.all().get().stream()
-            .filter(consumerGroupListing -> consumerGroupListing.isSimpleConsumerGroup())
-            .map(consumerGroupListing -> consumerGroupListing.groupId())
-            .collect(Collectors.toUnmodifiableList());
-
-    Map<TopicPartition, OffsetAndMetadata> offsetAndMetadataMap = new HashMap<>();
-    for (String groupId : groupIds) {
-      ListConsumerGroupOffsetsResult listConsumerGroupOffsetsResult =
-          adminClient.listConsumerGroupOffsets(groupId);
-      Map<TopicPartition, OffsetAndMetadata> metadataMap =
-          listConsumerGroupOffsetsResult.partitionsToOffsetAndMetadata().get();
-      metadataMap.forEach((k, v) -> offsetAndMetadataMap.putIfAbsent(k, v));
-    }
-
+    ListConsumerGroupOffsetsResult consumerGroupOffsetsResult =
+        adminClient.listConsumerGroupOffsets("");
+    Map<TopicPartition, OffsetAndMetadata> offsetAndMetadataMap =
+        consumerGroupOffsetsResult.partitionsToOffsetAndMetadata().get();
     if (offsetAndMetadataMap.size() < 6) {
       return false;
     }
