@@ -117,7 +117,9 @@ public abstract class AbstractQueryTransformation implements QueryTransformation
     if (lhsExpression.getValueCase() == Expression.ValueCase.ATTRIBUTE_EXPRESSION) {
       String lhsAttributeId = lhsExpression.getAttributeExpression().getAttributeId();
       if (lhsAttributeId.equals("BACKEND_TRACE.startTime")
-          || lhsAttributeId.equals("BACKEND.startTime")) {
+          || lhsAttributeId.equals("BACKEND.startTime")
+          || lhsAttributeId.equals("API.startTime")
+          || lhsAttributeId.equals("SERVICE.startTime")) {
         lhsExpression =
             Expression.newBuilder()
                 .setAttributeExpression(
