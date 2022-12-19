@@ -124,7 +124,8 @@ public abstract class AbstractQueryTransformation implements QueryTransformation
           || lhsAttributeId.equals("BACKEND.startTime")
           || lhsAttributeId.equals("API.startTime")
           || lhsAttributeId.equals("SERVICE.startTime")
-          || lhsAttributeId.equals("INTERACTION.startTime")) {
+          || lhsAttributeId.equals("INTERACTION.startTime")
+          || lhsAttributeId.equals("TRACE.startTime")) {
         lhsExpression =
             Expression.newBuilder()
                 .setAttributeExpression(
