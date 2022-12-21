@@ -88,7 +88,8 @@ public class HTPinotQueriesTest {
     kafkaZk.start();
 
     pinotServiceManager =
-        new GenericContainer<>(DockerImageName.parse("hypertrace/pinot-servicemanager:main"))
+        new GenericContainer<>(
+                DockerImageName.parse("harnoor7/hypertrace-dqs:pinot_image_time_filter_changes_2"))
             .withNetwork(network)
             .withNetworkAliases("pinot-controller", "pinot-server", "pinot-broker")
             .withExposedPorts(8099, 9000)
@@ -168,7 +169,9 @@ public class HTPinotQueriesTest {
 
   private static boolean bootstrapConfig() throws Exception {
     GenericContainer<?> bootstrapper =
-        new GenericContainer<>(DockerImageName.parse("hypertrace/config-bootstrapper:main"))
+        new GenericContainer<>(
+                DockerImageName.parse(
+                    "razorpay/hypertrace-service:config-bootstrapper_aaa9f0d51047fc9f5dbd104826a1f6bb880a2e56"))
             .withNetwork(network)
             .dependsOn(attributeService)
             .withEnv("MONGO_HOST", "mongo")
@@ -257,14 +260,14 @@ public class HTPinotQueriesTest {
             "service-call-view-events", 27L,
             "span-event-view", 50L,
             "log-event-view", 0L);
-    int retry = 0;
-    while (!areMessagesConsumed(endOffSetMap) && retry++ < 50) {
-      Thread.sleep(6000);
+    int retry = 0, maxRetries = 50;
+    while (!areMessagesConsumed(endOffSetMap) && retry++ < maxRetries) {
+      Thread.sleep(6000); // max 5 min wait time
     }
     // stop this service
     viewGen.stop();
 
-    return retry < 50;
+    return retry < maxRetries;
   }
 
   private static boolean areMessagesConsumed(Map<String, Long> endOffSetMap) throws Exception {

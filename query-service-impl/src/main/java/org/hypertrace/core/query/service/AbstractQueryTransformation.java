@@ -113,8 +113,30 @@ public abstract class AbstractQueryTransformation implements QueryTransformation
     if (filter.equals(Filter.getDefaultInstance())) {
       return Single.just(filter);
     }
+    /* Probably the worst way to write the code for which I apologise to anyone who reads this.
+     * This change should be added in Gateway Service. Will remove the below code in future and will add changes in gateway service
+     * when I get the time. (Desperate time requires desperate measures.)
+     * */
+    Expression lhsExpression = filter.getLhs();
+    if (lhsExpression.getValueCase() == Expression.ValueCase.ATTRIBUTE_EXPRESSION) {
+      String lhsAttributeId = lhsExpression.getAttributeExpression().getAttributeId();
+      if (lhsAttributeId.equals("BACKEND_TRACE.startTime")
+          || lhsAttributeId.equals("BACKEND.startTime")
+          || lhsAttributeId.equals("API.startTime")
+          || lhsAttributeId.equals("SERVICE.startTime")
+          || lhsAttributeId.equals("INTERACTION.startTime")
+          || lhsAttributeId.equals("TRACE.startTime")) {
+        lhsExpression =
+            Expression.newBuilder()
+                .setAttributeExpression(
+                    AttributeExpression.newBuilder()
+                        .setAttributeId(lhsAttributeId.concat("Filter"))
+                        .build())
+                .build();
+      }
+    }
 
-    Single<Expression> lhsSingle = this.transformExpression(filter.getLhs());
+    Single<Expression> lhsSingle = this.transformExpression(lhsExpression);
     Single<Expression> rhsSingle = this.transformExpression(filter.getRhs());
     Single<List<Filter>> childFilterListSingle =
         Observable.fromIterable(filter.getChildFilterList())
