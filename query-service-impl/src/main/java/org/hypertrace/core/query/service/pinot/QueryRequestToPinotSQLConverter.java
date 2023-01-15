@@ -156,13 +156,14 @@ class QueryRequestToPinotSQLConverter {
           builder.append(")");
           break;
         case CONTAINS_KEY:
-        case NOT_CONTAINS_KEY:
           List<LiteralConstant> kvp = convertExpressionToMapLiterals(filter.getRhs());
-          builder.append(convertExpressionToMapKeyColumn(filter.getLhs()));
-          builder.append(" ");
-          builder.append(operator);
-          builder.append(" ");
-          builder.append(convertLiteralToString(kvp.get(MAP_KEY_INDEX), paramsBuilder));
+          paramsBuilder.addStringParam("\"$." + kvp.get(MAP_KEY_INDEX).getValue().getString() + "\" IS NOT NULL");
+          builder.append("JSON_MATCH(tags, ?)");
+          break;
+        case NOT_CONTAINS_KEY:
+          List<LiteralConstant> kvp2 = convertExpressionToMapLiterals(filter.getRhs());
+          paramsBuilder.addStringParam("\"$." + kvp2.get(MAP_KEY_INDEX).getValue().getString() + "\" IS NULL");
+          builder.append("JSON_MATCH(tags, ?)");
           break;
         case CONTAINS_KEYVALUE:
           kvp = convertExpressionToMapLiterals(filter.getRhs());
@@ -187,13 +188,18 @@ class QueryRequestToPinotSQLConverter {
           builder.append(convertLiteralToString(kvp.get(MAP_VALUE_INDEX), paramsBuilder));
           break;
         default:
-          rhs = handleValueConversionForLiteralExpression(filter.getLhs(), filter.getRhs());
-          builder.append(
-              convertExpressionToString(filter.getLhs(), paramsBuilder, executionContext));
-          builder.append(" ");
-          builder.append(operator);
-          builder.append(" ");
-          builder.append(convertExpressionToString(rhs, paramsBuilder, executionContext));
+          if (filter.getLhs().getAttributeExpression().getAlias().contains("spanTags")) {
+            paramsBuilder.addStringParam("\"$." + filter.getLhs().getAttributeExpression().getSubpath() + "\" = ''" + filter.getRhs().getLiteral().getValue().getString() + "''");
+            builder.append("JSON_MATCH(tags, ?)");
+          } else {
+            rhs = handleValueConversionForLiteralExpression(filter.getLhs(), filter.getRhs());
+            builder.append(
+                    convertExpressionToString(filter.getLhs(), paramsBuilder, executionContext));
+            builder.append(" ");
+            builder.append(operator);
+            builder.append(" ");
+            builder.append(convertExpressionToString(rhs, paramsBuilder, executionContext));
+          }
       }
     }
     return builder.toString();
