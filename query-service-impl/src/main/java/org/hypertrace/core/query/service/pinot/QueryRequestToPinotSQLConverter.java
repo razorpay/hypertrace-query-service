@@ -3,16 +3,20 @@ package org.hypertrace.core.query.service.pinot;
 import static org.hypertrace.core.query.service.QueryRequestUtil.getLogicalColumnName;
 import static org.hypertrace.core.query.service.QueryRequestUtil.isAttributeExpressionWithSubpath;
 import static org.hypertrace.core.query.service.QueryRequestUtil.isSimpleAttributeExpression;
-import static org.hypertrace.core.query.service.api.Expression.ValueCase.COLUMNIDENTIFIER;
 import static org.hypertrace.core.query.service.api.Expression.ValueCase.LITERAL;
+import static org.hypertrace.core.query.service.pinot.PinotBasedRequestHandler.MAX_PINOT_FILTER_TO_FREQ_METRIC_COUNTERS;
+import static org.hypertrace.core.serviceframework.metrics.PlatformMetricsRegistry.registerCounter;
 
 import com.google.common.base.Joiner;
 import com.google.protobuf.ByteString;
+import io.micrometer.core.instrument.Counter;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 import org.hypertrace.core.query.service.ExecutionContext;
 import org.hypertrace.core.query.service.api.Expression;
 import org.hypertrace.core.query.service.api.Filter;
@@ -39,6 +43,8 @@ class QueryRequestToPinotSQLConverter {
   private static final String MAP_VALUE = "mapValue";
   private static final int MAP_KEY_INDEX = 0;
   private static final int MAP_VALUE_INDEX = 1;
+  private final Map<String, Counter> pinotFilterVsCounter = new ConcurrentHashMap<>();
+  private static final String PINOT_FILTER_COUNTER_NAME = "pinot.filter.frequency";
 
   private final ViewDefinition viewDefinition;
   private final PinotFunctionConverter functionConverter;
@@ -154,6 +160,7 @@ class QueryRequestToPinotSQLConverter {
           builder.append(",");
           builder.append(convertExpressionToString(rhs, paramsBuilder, executionContext));
           builder.append(")");
+          logPinotFilter(builder.toString());
           break;
         case CONTAINS_KEY:
         case NOT_CONTAINS_KEY:
@@ -161,6 +168,7 @@ class QueryRequestToPinotSQLConverter {
           builder.append(convertExpressionToMapKeyColumn(filter.getLhs()));
           builder.append(" ");
           builder.append(operator);
+          logPinotFilter(builder.toString());
           builder.append(" ");
           builder.append(convertLiteralToString(kvp.get(MAP_KEY_INDEX), paramsBuilder));
           break;
@@ -185,6 +193,7 @@ class QueryRequestToPinotSQLConverter {
           builder.append(valCol);
           builder.append(") = ");
           builder.append(convertLiteralToString(kvp.get(MAP_VALUE_INDEX), paramsBuilder));
+          logPinotFilter(builder.toString());
           break;
         default:
           rhs = handleValueConversionForLiteralExpression(filter.getLhs(), filter.getRhs());
@@ -192,11 +201,36 @@ class QueryRequestToPinotSQLConverter {
               convertExpressionToString(filter.getLhs(), paramsBuilder, executionContext));
           builder.append(" ");
           builder.append(operator);
+          logPinotFilter(builder.toString());
           builder.append(" ");
           builder.append(convertExpressionToString(rhs, paramsBuilder, executionContext));
       }
     }
     return builder.toString();
+  }
+
+  private void logPinotFilter(String pinotFilter) {
+    try {
+      /* The below log prints filter like ' start_time_millis >=  ' (without quotes).
+      Note: operator is also necessary as it can help in figuring out the  appropriate type of index like range index etc. */
+      LOG.info("BOOKMARK: SIMPLIFIED_PINOT_FILTER, childFilter with operator: {}", pinotFilter);
+      String key = pinotFilter + "#" + viewDefinition.getViewName();
+      if (pinotFilterVsCounter.size() < MAX_PINOT_FILTER_TO_FREQ_METRIC_COUNTERS) {
+        pinotFilterVsCounter
+            .computeIfAbsent(
+                key,
+                k ->
+                    registerCounter(
+                        PINOT_FILTER_COUNTER_NAME,
+                        Map.of(
+                            "filterName", pinotFilter, "viewName", viewDefinition.getViewName())))
+            .increment();
+      } else if (pinotFilterVsCounter.containsKey(key)) {
+        pinotFilterVsCounter.get(key).increment();
+      }
+    } catch (Exception e) {
+      LOG.info("BOOKMARK: SIMPLIFIED_CHILD_FILTER, error occurred while logging pinot filter: ", e);
+    }
   }
 
   /**
